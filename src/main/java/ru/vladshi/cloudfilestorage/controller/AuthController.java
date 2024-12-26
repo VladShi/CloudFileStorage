@@ -35,7 +35,7 @@ public class AuthController {
 
         if (!bindingResult.hasErrors()) {
             User user = UserMapper.toEntity(userDto);
-            saveUser(user, bindingResult);
+            saveUserWithErrorChecking(user, bindingResult);
         }
 
         if (bindingResult.hasErrors()) {
@@ -52,7 +52,7 @@ public class AuthController {
         return "login";
     }
 
-    private void saveUser(User user, BindingResult bindingResult) {
+    private void saveUserWithErrorChecking(User user, BindingResult bindingResult) {
         try {
             userService.save(user);
         } catch (UserRegistrationException e) {
