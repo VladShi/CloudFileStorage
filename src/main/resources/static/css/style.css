@@ -1,0 +1,55 @@
+/* Общие стили для темной темы */
+body {
+    background-color: #333;
+    color: #fff;
+    font-family: Arial, sans-serif;
+}
+
+/* Стили для форм */
+input, textarea, select {
+    background-color: #444;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 4px;
+}
+
+/* Стили для кнопок */
+button, .btn {
+    background-color: #555;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+button:hover, .btn:hover {
+    background-color: #666;
+}
+
+/* Стили для ссылок */
+a {
+    color: #98b4f4;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #b5def8;
+    text-decoration: underline;
+}
+
+/* Стили для ссылок, выглядящих как кнопки */
+.btn-link {
+    background-color: #555;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+.btn-link:hover {
+    background-color: #666;
+}
