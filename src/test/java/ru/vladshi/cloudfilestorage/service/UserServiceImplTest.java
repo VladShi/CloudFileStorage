@@ -6,9 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import ru.vladshi.cloudfilestorage.TestcontainersConfiguration;
+import ru.vladshi.cloudfilestorage.BaseTestcontainersForTest;
 import ru.vladshi.cloudfilestorage.entity.User;
 import ru.vladshi.cloudfilestorage.exception.UserRegistrationException;
 import ru.vladshi.cloudfilestorage.repository.UserRepository;
@@ -16,18 +15,15 @@ import ru.vladshi.cloudfilestorage.repository.UserRepository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@SpringBootTest(classes = TestcontainersConfiguration.class)
+@SpringBootTest
 @Testcontainers
-public class UserServiceImplTest {
+public class UserServiceImplTest extends BaseTestcontainersForTest {
 
     @Autowired
     private UserService userService;
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private MySQLContainer<?> mysqlContainer;
 
     private static User testuser;
     private final static String TEST_USERNAME = "testusername";
@@ -43,32 +39,32 @@ public class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should save user successfully")
-    public void shouldSaveUserSuccessfully() {
+    @DisplayName("Should register user successfully")
+    public void shouldRegisterUserSuccessfully() {
 
-        userService.save(testuser);
+        userService.registerUser(testuser);
 
         assertThat(userRepository.findByUsername(TEST_USERNAME)).isNotNull();
     }
 
     @Test
-    @DisplayName("Should throw UserRegistrationException when saving user with duplicate username")
-    public void shouldThrowUserRegistrationExceptionWhenSavingUserWithDuplicateUsername() {
+    @DisplayName("Should throw UserRegistrationException when registering user with duplicate username")
+    public void shouldThrowUserRegistrationExceptionWhenRegisteringUserWithDuplicateUsername() {
 
-        userService.save(testuser);
+        userService.registerUser(testuser);
 
         User userWithDuplicateUsername = new User();
         userWithDuplicateUsername.setUsername(TEST_USERNAME);
         userWithDuplicateUsername.setPassword("password2");
 
-        assertThrows(UserRegistrationException.class, () -> userService.save(userWithDuplicateUsername));
+        assertThrows(UserRegistrationException.class, () -> userService.registerUser(userWithDuplicateUsername));
     }
 
     @Test
     @DisplayName("Should load user by username successfully")
     public void shouldLoadUserByUsernameSuccessfully() {
 
-        userService.save(testuser);
+        userService.registerUser(testuser);
 
         UserDetails userDetails = userService.loadUserByUsername(TEST_USERNAME);
 

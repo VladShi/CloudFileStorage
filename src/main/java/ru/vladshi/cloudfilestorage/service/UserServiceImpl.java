@@ -1,6 +1,7 @@
 package ru.vladshi.cloudfilestorage.service;
 
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -30,12 +31,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void save(User user) {
+    public void registerUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         try {
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
-            throw new UserRegistrationException("Username is already taken");
+            if (e.getCause() instanceof ConstraintViolationException) {
+                throw new UserRegistrationException("Username is already taken");
+            }
+            throw e;
         }
     }
 }

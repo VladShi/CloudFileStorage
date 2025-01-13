@@ -10,3 +10,11 @@ spring.jpa.hibernate.ddl-auto=update
 spring.flyway.enabled=true
 spring.flyway.locations=classpath:db/migration
 spring.flyway.baseline-on-migrate=true
+
+# ============================================
+# MinIO configuration
+# ============================================
+minio.endpoint=http://localhost:9000
+minio.accessKey=
+minio.secretKey=
+minio.bucket.users=users-bucket

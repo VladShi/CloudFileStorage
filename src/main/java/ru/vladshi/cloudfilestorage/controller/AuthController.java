@@ -54,7 +54,7 @@ public class AuthController {
 
     private void saveUserWithErrorChecking(User user, BindingResult bindingResult) {
         try {
-            userService.save(user);
+            userService.registerUser(user);
         } catch (UserRegistrationException e) {
             bindingResult.rejectValue("username", "error.username", e.getMessage());
         }
