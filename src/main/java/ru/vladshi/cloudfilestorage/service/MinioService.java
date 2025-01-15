@@ -6,6 +6,7 @@ import java.util.List;
 
 public interface MinioService {
 
-    // получение содержимого конкретной папки пользователя для отображения во вью
     List<StorageItem> getItems(String userPrefix, String path);
+
+    void createFolder(String basePath, String folderPath, String newFolderName);
 }

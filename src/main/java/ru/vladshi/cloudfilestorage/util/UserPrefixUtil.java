@@ -7,7 +7,7 @@ public final class UserPrefixUtil {
 
     public static String generateUserPrefix(String username, Long userId) {
         String normalizedUsername = normalizeUsername(username);
-        return normalizedUsername + "-" + userId;
+        return normalizedUsername + "-" + userId + "/";
     }
 
     private static String normalizeUsername(String username) {
