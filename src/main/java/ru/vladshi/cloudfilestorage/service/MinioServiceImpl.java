@@ -2,6 +2,8 @@ package ru.vladshi.cloudfilestorage.service;
 
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
+import io.minio.messages.DeleteError;
+import io.minio.messages.DeleteObject;
 import io.minio.messages.Item;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 import ru.vladshi.cloudfilestorage.dto.StorageItem;
 import ru.vladshi.cloudfilestorage.exception.FolderAlreadyExistsException;
 import ru.vladshi.cloudfilestorage.exception.FolderNotFoundException;
+import ru.vladshi.cloudfilestorage.exception.ObjectDeletionException;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
@@ -78,7 +81,9 @@ public class MinioServiceImpl implements MinioService {
     @Override
     public void createFolder(String basePath, String folderPath, String newFolderName) {
         if (newFolderName == null || newFolderName.isBlank()) {
-            throw new IllegalArgumentException("New folder name cannot be null or empty");
+            throw new IllegalArgumentException("Folder name cannot be null or empty");
+        } else if (!newFolderName.endsWith("/")) {
+            newFolderName += "/";
         }
 
         // Убедимся, что folderPath заканчивается на "/", и не пустое
@@ -92,7 +97,7 @@ public class MinioServiceImpl implements MinioService {
         String parentPath = basePath + folderPath;
 
         // Полный путь к новой папке
-        String fullPath = parentPath + newFolderName + "/";
+        String fullPath = parentPath + newFolderName;
 
         try {
             // Проверяем, существует ли родительская папка, если она не является базовой папкой
@@ -139,6 +144,68 @@ public class MinioServiceImpl implements MinioService {
     }
 
     // удаление папки со всем вложенным
+    @Override
+    public void deleteFolder(String basePath, String folderPath, String folderName) {
+        if (folderName == null || folderName.isBlank()) {
+            throw new IllegalArgumentException("Folder name cannot be null or empty");
+        } else if (!folderName.endsWith("/")) {
+            folderName += "/";
+        }
+
+        // Убедимся, что folderPath заканчивается на "/", и не пустое
+        if (folderPath == null || folderPath.isBlank()) {
+            folderPath = "";
+        } else if (!folderPath.endsWith("/")) {
+            folderPath += "/";
+        }
+
+        // Полный путь к удаляемой папке
+        String fullPath = basePath + folderPath + folderName;
+
+        try {
+            // Проверяем, существует ли удаляемая папка
+            if (!folderExists(fullPath)) {
+                throw new FolderNotFoundException("Folder not found: " + fullPath);
+            }
+
+            // Получаем список всех объектов в папке (включая вложенные)
+            Iterable<Result<Item>> results = minioClient.listObjects(
+                    ListObjectsArgs.builder()
+                            .bucket(usersBucketName)
+                            .prefix(fullPath)
+                            .recursive(true)
+                            .build()
+            );
+
+            // Собираем объекты для удаления
+            List<DeleteObject> objectsToDelete = new ArrayList<>();
+            for (Result<Item> result : results) {
+                Item item = result.get();
+                objectsToDelete.add(new DeleteObject(item.objectName()));
+            }
+
+            // Удаляем объекты пачкой
+            if (!objectsToDelete.isEmpty()) {
+                Iterable<Result<DeleteError>> deletingResults = minioClient.removeObjects(
+                                RemoveObjectsArgs.builder()
+                                .bucket(usersBucketName)
+                                .objects(objectsToDelete)
+                                .build()
+                );
+
+                // Проверяем ошибки
+                for (Result<DeleteError> result : deletingResults) {
+                    DeleteError error = result.get();
+                    throw new ObjectDeletionException("Failed to delete object: " + error.objectName());
+                }
+            }
+
+        } catch (FolderNotFoundException | ObjectDeletionException e) {
+            throw e; // Пробрасываем кастомное исключение
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete folder: " + fullPath, e);
+        }
+    }
 
     // переименование папки с изменением пути ко всем вложенным
 
