@@ -101,6 +101,21 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     }
 
     @Test
+    @DisplayName("Проверяем, что метод getItems возвращает пустой список, если в папке нет папок и файлов")
+    void shouldReturnEmptyListIfFolderHasNoFoldersAndFiles() {
+        String folderPath = null;
+        String requestedFolderName = "newFolder/";
+        minioService.createFolder(testUserPrefix, folderPath, requestedFolderName);
+
+        // Проверяем, что папка создалась
+        assertTrue(folderExists(testUserPrefix + requestedFolderName), "Папка должна быть создана в basePath");
+
+        List<StorageItem> items = minioService.getItems(testUserPrefix, requestedFolderName);
+
+        assertTrue(items.isEmpty(), "Список должен быть пустым, если в папке нет папок и файлов");
+    }
+
+    @Test
     @DisplayName("Создание вложенной папки на два уровня")
     void shouldCreateNestedFolder() {
         // Сначала создаем промежуточную папку folder1/
@@ -114,6 +129,28 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
                 "Промежуточная папка должна быть создана");
         assertTrue(folderExists(testUserPrefix + "folder1/folder2/"),
                 "Вложенная папка должна быть создана");
+    }
+
+    @Test
+    @DisplayName("Проверяем, что метод getItems возвращает вложенную папку, если в папке есть одна вложенная папка")
+    void shouldReturnListWithInnerFolderIfFolderHasInnerFolder() {
+        String folderPath = null;
+        String requestedFolderName = "someFolder/";
+        String innerFolderName = "innerFolder/";
+        minioService.createFolder(testUserPrefix, folderPath, requestedFolderName);
+        minioService.createFolder(testUserPrefix, requestedFolderName, innerFolderName);
+
+        // Проверяем, что папка создалась
+        assertTrue(folderExists(testUserPrefix + requestedFolderName), "Папка должна быть создана в basePath");
+        assertTrue(folderExists(testUserPrefix + requestedFolderName + innerFolderName),
+                "В запрашиваемой папке должна быть создана внутренняя папка");
+
+        List<StorageItem> items = minioService.getItems(testUserPrefix, requestedFolderName);
+
+        assertFalse(items.isEmpty(), "Список не должен быть пустым");
+        assertEquals(1, items.size(), "Размер списка элементов должен быть равен 1");
+        assertEquals(testUserPrefix + requestedFolderName + innerFolderName, items.getFirst().name(),
+                "Должны получить внутреннюю папку");
     }
 
     @Test

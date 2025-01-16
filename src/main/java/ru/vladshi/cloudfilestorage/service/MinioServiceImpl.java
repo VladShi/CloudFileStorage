@@ -51,12 +51,16 @@ public class MinioServiceImpl implements MinioService {
         String fullPrefix = basePath;
         if (path != null && !path.isBlank()) {
             fullPrefix = basePath + path;
+            if (!fullPrefix.endsWith("/")) {
+                fullPrefix += "/";
+            }
         }
 
         try {
             Iterable<Result<Item>> results = minioClient.listObjects(
                     ListObjectsArgs.builder()
                             .bucket(usersBucketName)
+                            .startAfter(fullPrefix)
                             .prefix(fullPrefix)
                             .delimiter("/")
                             .recursive(false)
