@@ -315,6 +315,105 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
                 () -> minioService.deleteFolder(testUserPrefix, "", nonExistentFolder));
     }
 
+    @Test
+    @DisplayName("Переименование папки с использованием пустого пути")
+    void shouldRenameFolderWithEmptyPath() {
+        String oldFolderName = "folder1/";
+        String renamedFolderName = "renamedFolder/";
+
+        // Создаем папку для переименования
+        minioService.createFolder(testUserPrefix, "", oldFolderName);
+
+        // Переименовываем папку
+        minioService.renameFolder(testUserPrefix, "", oldFolderName, renamedFolderName);
+
+        // Проверяем, что старая папка удалена
+        assertFalse(folderExists(testUserPrefix + oldFolderName));
+
+        // Проверяем, что новая папка создана
+        assertTrue(folderExists(testUserPrefix + renamedFolderName));
+    }
+
+    @Test
+    @DisplayName("Переименование пустой папки")
+    void shouldRenameEmptyFolder() {
+        String parentFolder = "parentFolder/";
+        String oldFolderName = "emptyFolder/";
+        String renamedFolderName = "renamedEmptyFolder/";
+
+        // Создаем родительскую папку и пустую папку
+        minioService.createFolder(testUserPrefix, "", parentFolder);
+        minioService.createFolder(testUserPrefix, parentFolder, oldFolderName);
+
+        // Переименовываем папку
+        minioService.renameFolder(testUserPrefix, parentFolder, oldFolderName, renamedFolderName);
+
+        // Проверяем, что старая папка удалена
+        assertFalse(folderExists(testUserPrefix + parentFolder + oldFolderName));
+
+        // Проверяем, что новая папка создана
+        assertTrue(folderExists(testUserPrefix + parentFolder + renamedFolderName));
+    }
+
+    @Test
+    @DisplayName("Попытка переименования несуществующей папки")
+    void shouldThrowExceptionWhenRenamingNonExistentFolder() {
+        String parentFolder = "parentFolder/";
+        String nonExistentFolder = "nonExistentFolder/";
+        String renamedFolderName = "renamedFolder/";
+
+        // Создаем родительскую папку
+        minioService.createFolder(testUserPrefix, "", parentFolder);
+
+        // Проверяем, что метод выбрасывает исключение
+        assertThrows(FolderNotFoundException.class,
+                () -> minioService.renameFolder(testUserPrefix, parentFolder, nonExistentFolder, renamedFolderName));
+    }
+
+    @Test
+    @DisplayName("Попытка переименования папки в уже существующую папку")
+    void shouldThrowExceptionWhenRenamingToExistingFolder() {
+        String parentFolder = "parentFolder/";
+        String oldFolderName = "folder1/";
+        String existingFolderName = "existingFolder/";
+
+        // Создаем родительскую папку и две вложенные папки
+        minioService.createFolder(testUserPrefix, "", parentFolder);
+        minioService.createFolder(testUserPrefix, parentFolder, oldFolderName);
+        minioService.createFolder(testUserPrefix, parentFolder, existingFolderName);
+
+        // Проверяем, что метод выбрасывает исключение
+        assertThrows(FolderAlreadyExistsException.class,
+                () -> minioService.renameFolder(testUserPrefix, parentFolder, oldFolderName, existingFolderName));
+    }
+
+    @Test
+    @DisplayName("Переименование папки с вложенными папками")
+    void shouldRenameFolderWithNestedFolders() {
+        String folderWithContent = "folderWithContent/";
+        String oldFolderName = "folder1/";
+        String renamedFolderName = "renamed-folder/";
+
+        // Создаем папку и вложенные объекты
+        minioService.createFolder(testUserPrefix, "", folderWithContent);
+        minioService.createFolder(testUserPrefix, folderWithContent, oldFolderName);
+        minioService.createFolder(testUserPrefix, folderWithContent + oldFolderName, "nestedFolder");
+        // minioService.uploadFile(); // TODO добавить файлы
+
+        // Переименовываем папку
+        minioService.renameFolder(testUserPrefix, folderWithContent, oldFolderName, renamedFolderName);
+
+        // Проверяем, что старые объекты удалены
+        assertFalse(folderExists(testUserPrefix + folderWithContent + oldFolderName));
+        assertFalse(folderExists(testUserPrefix + folderWithContent + oldFolderName + "nestedFolder/"));
+        // assertFalse(fileExists();
+
+        // Проверяем, что новые объекты созданы
+        assertTrue(folderExists(testUserPrefix + folderWithContent + renamedFolderName));
+        assertTrue(folderExists(testUserPrefix + folderWithContent + renamedFolderName + "nestedFolder/"));
+        // assertTrue(fileExists();
+    }
+
     private boolean folderExists(String folderPath) {
         if (folderPath != null && !folderPath.isBlank() && !folderPath.endsWith("/")) {
             folderPath = folderPath + "/";
@@ -360,4 +459,111 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
             throw new RuntimeException("Failed to clean test user folder", e);
         }
     }
+
+//    @Test
+//    @DisplayName("Оценка быстродействия переименования папки с 900 файлами")
+//    void shouldRenameFolderWith900Files() throws InterruptedException {
+//        // Имена папок
+//        String parentFolder = "parentFolder/";
+//        String contentFolder = "contentFolder/";
+//        String nestedFolder = "nestedFolder/";
+//        String renamedContentFolder = "renamedContentFolder/";
+//
+//        // Создаем родительскую папку
+//        minioService.createFolder(testUserPrefix, "", parentFolder);
+//
+//        // Создаем папку с контентом
+//        minioService.createFolder(testUserPrefix, parentFolder, contentFolder);
+//
+//        long startAddingTime = System.currentTimeMillis();
+//
+//        // Добавляем 450 файлов в папку с контентом
+//        addFilesToFolder(testUserPrefix + parentFolder + contentFolder, 450, 100 * 1024 * 1024 / 900); // ~100 Мб / 900 файлов
+//
+//        // Создаем вложенную папку и добавляем 450 файлов
+//        minioService.createFolder(testUserPrefix, parentFolder + contentFolder, nestedFolder);
+//        addFilesToFolder(testUserPrefix + parentFolder + contentFolder + nestedFolder, 450, 100 * 1024 * 1024 / 900);
+//
+//        long endAddingTime = System.currentTimeMillis();
+//        System.out.println("Время добавления файлов: " + (endAddingTime - startAddingTime) + " мс");
+//
+//        // Замеряем время выполнения переименования
+//        long startTime = System.currentTimeMillis();
+//        minioService.renameFolder(testUserPrefix, parentFolder, contentFolder, renamedContentFolder);
+//        long endTime = System.currentTimeMillis();
+//
+//        // Выводим время выполнения
+//        long duration = endTime - startTime;
+//        System.out.println("Время выполнения переименования: " + duration + " мс");
+//
+//        // Проверяем, что старые объекты удалены
+//        assertFalse(folderExists(testUserPrefix + parentFolder + contentFolder));
+//        assertFalse(folderExists(testUserPrefix + parentFolder + contentFolder + nestedFolder));
+//
+//        // Проверяем, что новые объекты созданы
+//        assertTrue(folderExists(testUserPrefix + parentFolder + renamedContentFolder));
+//        assertTrue(folderExists(testUserPrefix + parentFolder + renamedContentFolder + nestedFolder));
+//
+//        // Проверяем, что все файлы переименовались
+//        assertTrue(checkFilesRenamed(testUserPrefix + parentFolder + contentFolder, testUserPrefix + parentFolder + renamedContentFolder, 902));
+//    }
+//
+//    private void addFilesToFolder(String folderPath, int fileCount, int fileSize) {
+//        byte[] content = new byte[fileSize];
+//        new Random().nextBytes(content); // Заполняем массив случайными данными
+//
+//        for (int i = 0; i < fileCount; i++) {
+//            String fileName = "file" + i + ".txt";
+//            try {
+//                minioClient.putObject(
+//                        PutObjectArgs.builder()
+//                                .bucket(TEST_BUCKET_NAME)
+//                                .object(folderPath + fileName)
+//                                .stream(new ByteArrayInputStream(content), content.length, -1)
+//                                .build()
+//                );
+//            } catch (Exception e) {
+//                throw new RuntimeException("Failed to add file: " + folderPath + fileName, e);
+//            }
+//        }
+//    }
+//
+//    private boolean checkFilesRenamed(String oldFolderPath, String newFolderPath, int expectedFileCount) {
+//
+//        try {
+//            // Получаем список всех объектов в старой папке
+//            Iterable<Result<Item>> oldResults = minioClient.listObjects(
+//                    ListObjectsArgs.builder()
+//                            .bucket(TEST_BUCKET_NAME)
+//                            .prefix(oldFolderPath)
+//                            .recursive(true)
+//                            .build()
+//            );
+//
+//            // Получаем список всех объектов в новой папке
+//            Iterable<Result<Item>> newResults = minioClient.listObjects(
+//                    ListObjectsArgs.builder()
+//                            .bucket(TEST_BUCKET_NAME)
+//                            .prefix(newFolderPath)
+//                            .recursive(true)
+//                            .build()
+//            );
+//
+//            // Считаем количество объектов в старой и новой папке
+//            int oldCount = 0;
+//            for (Result<Item> result : oldResults) {
+//                oldCount++;
+//            }
+//
+//            int newCount = 0;
+//            for (Result<Item> result : newResults) {
+//                newCount++;
+//            }
+//
+//            // Если в старой папке объектов нет, а в новой есть ожидаемое количество, считаем, что всё переименовано
+//            return oldCount == 0 && newCount == expectedFileCount;
+//        } catch (Exception e) {
+//            throw new RuntimeException("Failed to check files renaming", e);
+//        }
+//    }
 }

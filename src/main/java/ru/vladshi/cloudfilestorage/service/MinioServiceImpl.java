@@ -211,7 +211,100 @@ public class MinioServiceImpl implements MinioService {
         }
     }
 
-    // переименование папки с изменением пути ко всем вложенным
+    // переименование папки с изменением пути ко всем вложенным(не забыть проверки на существование, что бы не затирать существующие)
+    @Override
+    public void renameFolder(String basePath, String folderPath, String oldFolderName, String newFolderName) {
+        if (oldFolderName == null || oldFolderName.isBlank()) {
+            throw new IllegalArgumentException("Folder name cannot be null or empty");
+        } else if (!oldFolderName.endsWith("/")) {
+            oldFolderName += "/";
+        }
+
+        if (newFolderName == null || newFolderName.isBlank()) {
+            throw new IllegalArgumentException("Folder name cannot be null or empty");
+        } else if (!newFolderName.endsWith("/")) {
+            newFolderName += "/";
+        }
+
+        // Убедимся, что folderPath заканчивается на "/", и не пустое
+        if (folderPath == null || folderPath.isBlank()) {
+            folderPath = "";
+        } else if (!folderPath.endsWith("/")) {
+            folderPath += "/";
+        }
+
+        // Полный путь к удаляемой старой папке
+        String fullOldPath = basePath + folderPath + oldFolderName;
+
+        // Полный путь к новой папке
+        String fullNewPath = basePath + folderPath + newFolderName;
+
+        try {
+            // Проверяем, существует ли удаляемая папка
+            if (!folderExists(fullOldPath)) {
+                throw new FolderNotFoundException("Folder not found: " + fullOldPath);
+            }
+
+            // Проверяем, что не занято имя папки для переименования
+            if (folderExists(fullNewPath)) {
+                throw new FolderAlreadyExistsException("Folder already exist: " + fullNewPath);
+            }
+
+            // Получаем список всех объектов с префиксом старой папки
+            Iterable<Result<Item>> results = minioClient.listObjects(
+                    ListObjectsArgs.builder()
+                            .bucket(usersBucketName)
+                            .prefix(fullOldPath)
+                            .recursive(true)
+                            .build()
+            );
+
+            List<DeleteObject> objectsToDelete = new ArrayList<>();
+
+            // Переименовываем каждый объект
+            for (Result<Item> result : results) {
+                Item item = result.get();
+                objectsToDelete.add(new DeleteObject(item.objectName()));
+
+                String oldObjectName = item.objectName();
+
+                // Формируем новое имя объекта
+                String newObjectName = oldObjectName.replaceFirst(fullOldPath, fullNewPath);
+
+                // Копируем объект с новым именем
+                minioClient.copyObject(
+                        CopyObjectArgs.builder()
+                                .bucket(usersBucketName)
+                                .object(newObjectName)
+                                .source(CopySource.builder()
+                                        .bucket(usersBucketName)
+                                        .object(oldObjectName)
+                                        .build())
+                                .build()
+                );
+            }
+
+            if (!objectsToDelete.isEmpty()) {
+                Iterable<Result<DeleteError>> deletingResults = minioClient.removeObjects(
+                        RemoveObjectsArgs.builder()
+                                .bucket(usersBucketName)
+                                .objects(objectsToDelete)
+                                .build()
+                );
+
+                // Проверяем ошибки
+                for (Result<DeleteError> result : deletingResults) {
+                    DeleteError error = result.get();
+                    throw new ObjectDeletionException("Failed to delete object: " + error.objectName());
+                }
+            }
+
+        } catch (FolderNotFoundException | ObjectDeletionException | FolderAlreadyExistsException e) {
+            throw e; // Пробрасываем кастомное исключение
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to rename folder: " + fullOldPath, e);
+        }
+    }
 
     // загрузка конкретного файла на сервер по пути
 
@@ -222,4 +315,8 @@ public class MinioServiceImpl implements MinioService {
     // скачивание конкретного файла по пути
 
     // скачивание конкретной папки со всем вложенным по пути
+
+    // загрузка папки с вложением
+
+    // поиск по имени, части имени
 }

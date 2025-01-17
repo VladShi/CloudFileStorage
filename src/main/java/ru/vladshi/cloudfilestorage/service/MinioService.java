@@ -10,6 +10,7 @@ public interface MinioService {
 
     void createFolder(String basePath, String folderPath, String newFolderName);
 
-    // удаление папки со всем вложенным
     void deleteFolder(String basePath, String folderPath, String folderName);
+
+    void renameFolder(String basePath, String folderPath, String oldFolderName, String newFolderName);
 }
