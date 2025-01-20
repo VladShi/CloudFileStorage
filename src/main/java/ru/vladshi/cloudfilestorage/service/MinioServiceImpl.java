@@ -1,7 +1,7 @@
 package ru.vladshi.cloudfilestorage.service;
 
 import io.minio.*;
-import io.minio.errors.ErrorResponseException;
+import io.minio.errors.*;
 import io.minio.messages.DeleteError;
 import io.minio.messages.DeleteObject;
 import io.minio.messages.Item;
@@ -9,12 +9,15 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import ru.vladshi.cloudfilestorage.dto.StorageItem;
+import ru.vladshi.cloudfilestorage.exception.FileAlreadyExistsInStorageException;
 import ru.vladshi.cloudfilestorage.exception.FolderAlreadyExistsException;
 import ru.vladshi.cloudfilestorage.exception.FolderNotFoundException;
 import ru.vladshi.cloudfilestorage.exception.ObjectDeletionException;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -307,6 +310,71 @@ public class MinioServiceImpl implements MinioService {
     }
 
     // загрузка конкретного файла на сервер по пути
+    @Override
+    public void uploadFile(String basePath, String folderPath, MultipartFile file) {
+        if (file == null || file.isEmpty() ||
+                file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
+            throw new IllegalArgumentException("File cannot be null or empty");
+        }
+
+        // Убедимся, что folderPath заканчивается на "/", и не пустое
+        if (folderPath == null || folderPath.isBlank()) {
+            folderPath = "";
+        } else if (!folderPath.endsWith("/")) {
+            folderPath += "/";
+        }
+
+        // Полный путь к родительской папке
+        String parentPath = basePath + folderPath;
+
+        // Полный путь к загружаемому файлу
+        String fullPath = parentPath + file.getOriginalFilename();
+
+        try {
+            // Проверяем, существует ли файл с таким именем
+            if (fileExists(fullPath)) {
+                throw new FileAlreadyExistsInStorageException("File already exists: " + fullPath);
+            }
+            File tempFile = File.createTempFile("upload-", file.getOriginalFilename());
+            file.transferTo(tempFile);
+
+            // Загружаем файл в MinIO
+            minioClient.uploadObject(
+                    UploadObjectArgs.builder()
+                            .bucket(usersBucketName)
+                            .object(fullPath)
+                            .filename(tempFile.getAbsolutePath())
+                            .build()
+            );
+
+            // Удаляем временный файл
+            boolean isTempFileDeleted = tempFile.delete();
+            if (!isTempFileDeleted) {
+                throw new RuntimeException("Failed to delete temporary file");
+            }
+        } catch (FileAlreadyExistsInStorageException e) {
+            throw e; // Пробрасываем кастомное исключение
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to upload file: " + fullPath, e);
+        }
+    }
+
+    private boolean fileExists(String filePath) throws Exception {
+        try {
+            minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(usersBucketName)
+                            .object(filePath)
+                            .build()
+            );
+            return true;
+        } catch (ErrorResponseException e) {
+            if (e.errorResponse().code().equals("NoSuchKey")) {
+                return false;
+            }
+            throw e;
+        }
+    }
 
     // удаление конкретного файла по пути
 
