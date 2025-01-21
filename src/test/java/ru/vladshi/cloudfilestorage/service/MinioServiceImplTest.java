@@ -16,6 +16,7 @@ import ru.vladshi.cloudfilestorage.BaseTestcontainersForTest;
 import ru.vladshi.cloudfilestorage.dto.StorageItem;
 import ru.vladshi.cloudfilestorage.entity.User;
 import ru.vladshi.cloudfilestorage.exception.FileAlreadyExistsInStorageException;
+import ru.vladshi.cloudfilestorage.exception.FileNotFoundInStorageException;
 import ru.vladshi.cloudfilestorage.exception.FolderAlreadyExistsException;
 import ru.vladshi.cloudfilestorage.exception.FolderNotFoundException;
 import ru.vladshi.cloudfilestorage.util.UserPrefixUtil;
@@ -566,6 +567,116 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
 
         // Удаляем временный файл
         Files.delete(tempFilePath);
+    }
+
+    @Test
+    @DisplayName("Удаление существующего файла")
+    void shouldDeleteExistingFile() throws IOException {
+        // Создаем тестовый файл
+        String fileName = "test-file.txt";
+        Path tempFilePath = Files.createTempFile("test-", ".txt");
+        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
+
+        // Создаем MultipartFile из временного файла
+        MultipartFile multipartFile = new MockMultipartFile(
+                "file",
+                fileName,
+                "text/plain",
+                Files.readAllBytes(tempFilePath)
+        );
+
+        // Загружаем файл
+        minioService.uploadFile(testUserPrefix, "", multipartFile);
+
+        // Проверяем, что файл загружен
+        String fullPath = testUserPrefix + fileName;
+        assertTrue(fileExists(fullPath), "Файл должен быть загружен в MinIO");
+
+        // Удаляем файл
+        minioService.deleteFile(testUserPrefix, "", fileName);
+
+        // Проверяем, что файл удален
+        assertFalse(fileExists(fullPath), "Файл должен быть удален из MinIO");
+
+        // Удаляем временный файл
+        Files.delete(tempFilePath);
+    }
+
+    @Test
+    @DisplayName("Попытка удаления несуществующего файла")
+    void shouldThrowExceptionWhenDeletingNonExistentFile() {
+        String nonExistentFileName = "non-existent-file.txt";
+
+        // Проверяем, что файл не существует
+        assertFalse(fileExists(testUserPrefix + nonExistentFileName), "Файл не должен существовать в MinIO");
+
+        // Пытаемся удалить несуществующий файл
+        assertThrows(FileNotFoundInStorageException.class,
+                () -> minioService.deleteFile(testUserPrefix, "", nonExistentFileName),
+                "Должно выбрасываться исключение при попытке удалить несуществующий файл");
+    }
+
+    @Test
+    @DisplayName("Попытка удаления файла с пустым именем")
+    void shouldThrowExceptionWhenDeletingFileWithEmptyName() {
+        String emptyFileName = "";
+
+        // Пытаемся удалить файл с пустым именем
+        assertThrows(IllegalArgumentException.class,
+                () -> minioService.deleteFile(testUserPrefix, "", emptyFileName),
+                "Должно выбрасываться исключение при попытке удалить файл с пустым именем");
+    }
+
+    @Test
+    @DisplayName("Удаление файла из вложенной папки")
+    void shouldDeleteFileFromNestedFolder() throws IOException {
+        // Создаем тестовый файл
+        String fileName = "test-file.txt";
+        Path tempFilePath = Files.createTempFile("test-", ".txt");
+        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
+
+        // Создаем MultipartFile из временного файла
+        MultipartFile multipartFile = new MockMultipartFile(
+                "file",
+                fileName,
+                "text/plain",
+                Files.readAllBytes(tempFilePath)
+        );
+
+        // Создаем вложенную папку
+        String nestedFolder = "nested-folder/";
+        minioService.createFolder(testUserPrefix, "", nestedFolder);
+
+        // Загружаем файл во вложенную папку
+        minioService.uploadFile(testUserPrefix, nestedFolder, multipartFile);
+
+        // Проверяем, что файл загружен
+        String fullPath = testUserPrefix + nestedFolder + fileName;
+        assertTrue(fileExists(fullPath), "Файл должен быть загружен в MinIO");
+
+        // Удаляем файл
+        minioService.deleteFile(testUserPrefix, nestedFolder, fileName);
+
+        // Проверяем, что файл удален
+        assertFalse(fileExists(fullPath), "Файл должен быть удален из MinIO");
+
+        // Удаляем временный файл
+        Files.delete(tempFilePath);
+    }
+
+    @Test
+    @DisplayName("Попытка удаления файла с некорректным именем")
+    void shouldThrowExceptionWhenDeletingFileWithInvalidName() {
+        String invalidFileName = "../invalid-file.txt";
+
+        // Пытаемся удалить файл с некорректным именем
+        Exception exception = assertThrows(RuntimeException.class,
+                () -> minioService.deleteFile(testUserPrefix, "", invalidFileName),
+                "Должно выбрасываться исключение при попытке удалить файл с некорректным именем");
+
+        // Проверяем, что причина исключения - IllegalArgumentException
+        assertInstanceOf(IllegalArgumentException.class, exception.getCause(),
+                "Причина исключения должна быть IllegalArgumentException");
     }
 
     private boolean folderExists(String folderPath) {

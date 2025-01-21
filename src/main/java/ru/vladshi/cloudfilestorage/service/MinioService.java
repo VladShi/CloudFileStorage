@@ -15,6 +15,7 @@ public interface MinioService {
 
     void renameFolder(String basePath, String folderPath, String oldFolderName, String newFolderName);
 
-    // загрузка конкретного файла на сервер по пути
     void uploadFile(String basePath, String folderPath, MultipartFile file);
+
+    void deleteFile(String basePath, String folderPath, String fileName);
 }

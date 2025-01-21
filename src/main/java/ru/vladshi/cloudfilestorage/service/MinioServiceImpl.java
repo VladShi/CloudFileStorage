@@ -11,10 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.vladshi.cloudfilestorage.dto.StorageItem;
-import ru.vladshi.cloudfilestorage.exception.FileAlreadyExistsInStorageException;
-import ru.vladshi.cloudfilestorage.exception.FolderAlreadyExistsException;
-import ru.vladshi.cloudfilestorage.exception.FolderNotFoundException;
-import ru.vladshi.cloudfilestorage.exception.ObjectDeletionException;
+import ru.vladshi.cloudfilestorage.exception.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -377,6 +374,37 @@ public class MinioServiceImpl implements MinioService {
     }
 
     // удаление конкретного файла по пути
+    @Override
+    public void deleteFile(String basePath, String folderPath, String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            throw new IllegalArgumentException("File name cannot be null or empty");
+        }
+
+        // Убедимся, что folderPath заканчивается на "/", и не пустое
+        if (folderPath == null || folderPath.isBlank()) {
+            folderPath = "";
+        } else if (!folderPath.endsWith("/")) {
+            folderPath += "/";
+        }
+
+        // Полный путь к удаляемому файлу
+        String fullPath = basePath + folderPath + fileName;
+
+        try {
+            // Проверяем, существует ли удаляемый файл
+            if (!fileExists(fullPath)) {
+                throw new FileNotFoundInStorageException("File not found: " + fullPath);
+            }
+
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder().bucket(usersBucketName).object(fullPath).build());
+
+        } catch (FileNotFoundInStorageException e) {
+            throw e; // Пробрасываем кастомное исключение
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete file: " + fullPath, e);
+        }
+    }
 
     // переименование конкретного файла по пути
 
