@@ -407,12 +407,68 @@ public class MinioServiceImpl implements MinioService {
     }
 
     // переименование конкретного файла по пути
+    @Override
+    public void renameFile(String basePath, String folderPath, String oldFileName, String newFileName) {
+        if (oldFileName == null || oldFileName.isBlank()) {
+            throw new IllegalArgumentException("File name cannot be null or empty");
+        }
+
+        if (newFileName == null || newFileName.isBlank()) {
+            throw new IllegalArgumentException("File name cannot be null or empty");
+        }
+
+        // Убедимся, что folderPath заканчивается на "/", и не пустое
+        if (folderPath == null || folderPath.isBlank()) {
+            folderPath = "";
+        } else if (!folderPath.endsWith("/")) {
+            folderPath += "/";
+        }
+
+        // Полный путь к удаляемому старому файлу
+        String fullOldPath = basePath + folderPath + oldFileName;
+
+        // Полный путь к новому файлу
+        String fullNewPath = basePath + folderPath + newFileName;
+
+        try {
+            // Проверяем, существует ли удаляемый файл
+            if (!fileExists(fullOldPath)) {
+                throw new FileNotFoundInStorageException("File not found: " + fullOldPath);
+            }
+
+            // Проверяем, что не занято имя файла для переименования
+            if (fileExists(fullNewPath)) {
+                throw new FileAlreadyExistsInStorageException("File already exist: " + fullNewPath);
+            }
+
+            // Копируем объект с новым именем
+            minioClient.copyObject(
+                    CopyObjectArgs.builder()
+                            .bucket(usersBucketName)
+                            .object(fullNewPath)
+                            .source(CopySource.builder()
+                                    .bucket(usersBucketName)
+                                    .object(fullOldPath)
+                                    .build())
+                            .build()
+            );
+
+            // Удаляем старый файл
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder().bucket(usersBucketName).object(fullOldPath).build());
+
+        } catch (FileNotFoundInStorageException | FileAlreadyExistsInStorageException e) {
+            throw e; // Пробрасываем кастомное исключение
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to rename file: " + fullOldPath, e);
+        }
+    }
+
+    // загрузка папки с вложением
 
     // скачивание конкретного файла по пути
 
     // скачивание конкретной папки со всем вложенным по пути
-
-    // загрузка папки с вложением
 
     // поиск по имени, части имени
 }

@@ -18,4 +18,6 @@ public interface MinioService {
     void uploadFile(String basePath, String folderPath, MultipartFile file);
 
     void deleteFile(String basePath, String folderPath, String fileName);
+
+    void renameFile(String basePath, String folderPath, String oldFileName, String newFileName);
 }

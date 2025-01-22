@@ -679,6 +679,186 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
                 "Причина исключения должна быть IllegalArgumentException");
     }
 
+    @Test
+    @DisplayName("Переименование существующего файла")
+    void shouldRenameExistingFile() throws IOException {
+        // Создаем тестовый файл
+        String oldFileName = "test-file.txt";
+        Path tempFilePath = Files.createTempFile("test-", ".txt");
+        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
+
+        // Создаем MultipartFile из временного файла
+        MultipartFile multipartFile = new MockMultipartFile(
+                "file",
+                oldFileName,
+                "text/plain",
+                Files.readAllBytes(tempFilePath)
+        );
+
+        // Загружаем файл
+        minioService.uploadFile(testUserPrefix, "", multipartFile);
+
+        // Проверяем, что файл загружен
+        String fullOldPath = testUserPrefix + oldFileName;
+        assertTrue(fileExists(fullOldPath), "Файл должен быть загружен в MinIO");
+
+        // Новое имя файла
+        String newFileName = "renamed-file.txt";
+
+        // Переименовываем файл
+        minioService.renameFile(testUserPrefix, "", oldFileName, newFileName);
+
+        // Проверяем, что файл переименован
+        String fullNewPath = testUserPrefix + newFileName;
+        assertTrue(fileExists(fullNewPath), "Файл должен быть переименован");
+        assertFalse(fileExists(fullOldPath), "Старый файл должен быть удален");
+
+        // Удаляем временный файл
+        Files.delete(tempFilePath);
+    }
+
+    @Test
+    @DisplayName("Попытка переименования несуществующего файла")
+    void shouldThrowExceptionWhenRenamingNonExistentFile() {
+        String nonExistentFileName = "non-existent-file.txt";
+        String newFileName = "renamed-file.txt";
+
+        // Проверяем, что файл не существует
+        assertFalse(fileExists(testUserPrefix + nonExistentFileName), "Файл не должен существовать в MinIO");
+
+        // Пытаемся переименовать несуществующий файл
+        assertThrows(FileNotFoundInStorageException.class,
+                () -> minioService.renameFile(testUserPrefix, "", nonExistentFileName, newFileName),
+                "Должно выбрасываться исключение при попытке переименовать несуществующий файл");
+    }
+
+    @Test
+    @DisplayName("Попытка переименования файла в уже существующий файл")
+    void shouldThrowExceptionWhenRenamingToExistingFile() throws IOException {
+        // Создаем тестовые файлы
+        String oldFileName = "test-file.txt";
+        String existingFileName = "existing-file.txt";
+        Path tempFilePath = Files.createTempFile("test-", ".txt");
+        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
+
+        // Создаем MultipartFile из временного файла
+        MultipartFile multipartFile = new MockMultipartFile(
+                "file",
+                oldFileName,
+                "text/plain",
+                Files.readAllBytes(tempFilePath)
+        );
+
+        // Загружаем файлы
+        minioService.uploadFile(testUserPrefix, "", multipartFile);
+        minioService.uploadFile(testUserPrefix, "", new MockMultipartFile(
+                "file",
+                existingFileName,
+                "text/plain",
+                "Hello, MinIO!".getBytes()
+        ));
+
+        // Проверяем, что файлы загружены
+        assertTrue(fileExists(testUserPrefix + oldFileName), "Файл должен быть загружен в MinIO");
+        assertTrue(fileExists(testUserPrefix + existingFileName), "Файл должен быть загружен в MinIO");
+
+        // Пытаемся переименовать файл в уже существующий файл
+        assertThrows(FileAlreadyExistsInStorageException.class,
+                () -> minioService.renameFile(testUserPrefix, "", oldFileName, existingFileName),
+                "Должно выбрасываться исключение при попытке переименовать файл в уже существующий файл");
+
+        // Удаляем временный файл
+        Files.delete(tempFilePath);
+    }
+
+    @Test
+    @DisplayName("Попытка переименования файла с пустым именем")
+    void shouldThrowExceptionWhenRenamingFileWithEmptyName() {
+        String emptyFileName = "";
+
+        // Пытаемся переименовать файл с пустым именем
+        assertThrows(IllegalArgumentException.class,
+                () -> minioService.renameFile(testUserPrefix, "", emptyFileName, "new-file.txt"),
+                "Должно выбрасываться исключение при попытке переименовать файл с пустым именем");
+    }
+
+    @Test
+    @DisplayName("Попытка переименования файла с пустым новым именем")
+    void shouldThrowExceptionWhenRenamingFileWithEmptyNewName() throws IOException {
+        // Создаем тестовый файл
+        String oldFileName = "test-file.txt";
+        Path tempFilePath = Files.createTempFile("test-", ".txt");
+        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
+
+        // Создаем MultipartFile из временного файла
+        MultipartFile multipartFile = new MockMultipartFile(
+                "file",
+                oldFileName,
+                "text/plain",
+                Files.readAllBytes(tempFilePath)
+        );
+
+        // Загружаем файл
+        minioService.uploadFile(testUserPrefix, "", multipartFile);
+
+        // Проверяем, что файл загружен
+        String fullOldPath = testUserPrefix + oldFileName;
+        assertTrue(fileExists(fullOldPath), "Файл должен быть загружен в MinIO");
+
+        // Новое имя файла (пустое)
+        String newFileName = "";
+
+        // Пытаемся переименовать файл с пустым новым именем
+        assertThrows(IllegalArgumentException.class,
+                () -> minioService.renameFile(testUserPrefix, "", oldFileName, newFileName),
+                "Должно выбрасываться исключение при попытке переименовать файл с пустым новым именем");
+
+        // Удаляем временный файл
+        Files.delete(tempFilePath);
+    }
+
+    @Test
+    @DisplayName("Переименование файла во вложенной папке")
+    void shouldRenameFileInNestedFolder() throws IOException {
+        // Создаем тестовый файл
+        String oldFileName = "test-file.txt";
+        Path tempFilePath = Files.createTempFile("test-", ".txt");
+        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
+
+        // Создаем MultipartFile из временного файла
+        MultipartFile multipartFile = new MockMultipartFile(
+                "file",
+                oldFileName,
+                "text/plain",
+                Files.readAllBytes(tempFilePath)
+        );
+
+        // Создаем вложенную папку
+        String nestedFolder = "nested-folder/";
+        minioService.createFolder(testUserPrefix, "", nestedFolder);
+
+        // Загружаем файл во вложенную папку
+        minioService.uploadFile(testUserPrefix, nestedFolder, multipartFile);
+
+        // Проверяем, что файл загружен
+        String fullOldPath = testUserPrefix + nestedFolder + oldFileName;
+        assertTrue(fileExists(fullOldPath), "Файл должен быть загружен в MinIO");
+
+        // Новое имя файла
+        String newFileName = "renamed-file.txt";
+
+        // Переименовываем файл
+        minioService.renameFile(testUserPrefix, nestedFolder, oldFileName, newFileName);
+
+        // Проверяем, что файл переименован
+        String fullNewPath = testUserPrefix + nestedFolder + newFileName;
+        assertTrue(fileExists(fullNewPath), "Файл должен быть переименован");
+        assertFalse(fileExists(fullOldPath), "Старый файл должен быть удален");
+
+        // Удаляем временный файл
+        Files.delete(tempFilePath);
+    }
+
     private boolean folderExists(String folderPath) {
         if (folderPath != null && !folderPath.isBlank() && !folderPath.endsWith("/")) {
             folderPath = folderPath + "/";
