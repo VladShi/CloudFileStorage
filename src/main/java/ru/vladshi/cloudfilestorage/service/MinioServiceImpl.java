@@ -15,8 +15,11 @@ import ru.vladshi.cloudfilestorage.exception.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class MinioServiceImpl implements MinioService {
@@ -309,9 +312,9 @@ public class MinioServiceImpl implements MinioService {
     // загрузка конкретного файла на сервер по пути
     @Override
     public void uploadFile(String basePath, String folderPath, MultipartFile file) {
-        if (file == null || file.isEmpty() ||
+        if (file == null ||
                 file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
-            throw new IllegalArgumentException("File cannot be null or empty");
+            throw new IllegalArgumentException("File cannot be null or nameless");
         }
 
         // Убедимся, что folderPath заканчивается на "/", и не пустое
@@ -465,6 +468,132 @@ public class MinioServiceImpl implements MinioService {
     }
 
     // загрузка папки с вложением
+    @Override
+    public void uploadFolder(String basePath, String folderPath, String folderName, MultipartFile[] files) {
+        if (files == null || files.length == 0) {
+            throw new IllegalArgumentException("Files cannot be null or empty");
+        }
+
+        if (folderName == null || folderName.isBlank()) {
+            throw new IllegalArgumentException("Folder name cannot be null or empty");
+        } else if (!folderName.endsWith("/")) {
+            folderName += "/";
+        }
+
+        // Убедимся, что folderPath заканчивается на "/", и не пустое
+        if (folderPath == null || folderPath.isBlank()) {
+            folderPath = "";
+        } else if (!folderPath.endsWith("/")) {
+            folderPath += "/";
+        }
+
+        // Полный путь к родительской папке
+        String parentPath = basePath + folderPath;
+
+        // Полный путь к новой папке
+        String fullPath = parentPath + folderName;
+
+        // Создаем Set для хранения уже созданных путей
+        Set<String> createdPaths = new HashSet<>();
+
+        try {
+            // Проверяем, что папка, в которую загружается папка, существует (или это корневая папка)
+            if (!folderPath.isEmpty() && !folderExists(parentPath)) {
+                throw new FolderNotFoundException("Folder does not exist: " + parentPath);
+            }
+
+            // Проверяем, что папка с таким же именем не существует
+            if (folderExists(fullPath)) {
+                throw new FolderAlreadyExistsException("Folder already exists: " + fullPath);
+            }
+
+            // Создаем новую папку
+            createFolderStructure(fullPath, createdPaths);
+
+            // Обрабатываем файлы
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty() ||
+                        file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
+                    throw new IllegalArgumentException("File cannot be null or empty");
+                }
+
+                // Полный путь к загружаемому файлу
+                String fileFullPath = fullPath + file.getOriginalFilename();
+
+                // Создаем структуру папок, если она есть
+                String fileFolderPath = fileFullPath.substring(0, fileFullPath.lastIndexOf("/") + 1);
+                createFolderStructure(fileFolderPath, createdPaths);
+
+                // Извлекаем только имя файла (без пути)
+                String fileName = Paths.get(file.getOriginalFilename()).getFileName().toString();
+
+                // Создаем временный файл
+                File tempFile = File.createTempFile("upload-", fileName);
+                file.transferTo(tempFile);
+
+                // Загружаем файл в MinIO
+                minioClient.uploadObject(
+                        UploadObjectArgs.builder()
+                                .bucket(usersBucketName)
+                                .object(fileFullPath)
+                                .filename(tempFile.getAbsolutePath())
+                                .build()
+                );
+
+                // Удаляем временный файл
+                boolean isTempFileDeleted = tempFile.delete();
+                if (!isTempFileDeleted) {
+                    throw new RuntimeException("Failed to delete temporary file");
+                }
+            }
+        } catch (FolderNotFoundException | FolderAlreadyExistsException e) {
+            throw e; // Пробрасываем кастомные исключения
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to upload folder: " + fullPath, e);
+        }
+    }
+
+    private void createFolderStructure(String folderPath, Set<String> createdPaths) {
+        if (folderPath == null || folderPath.isBlank()) {
+            return;
+        }
+
+        // Убедимся, что folderPath заканчивается на "/"
+        if (!folderPath.endsWith("/")) {
+            folderPath += "/";
+        }
+
+        String[] folders = folderPath.split("/");
+        StringBuilder currentPath = new StringBuilder();
+
+        for (String folder : folders) {
+            if (folder.isBlank()) {
+                continue;
+            }
+
+            currentPath.append(folder).append("/");
+
+            // Проверяем, был ли путь уже создан
+            if (!createdPaths.contains(currentPath.toString())) {
+                try {
+                    // Создаем папку, если она не существует
+                    if (!folderExists(currentPath.toString())) {
+                        minioClient.putObject(
+                                PutObjectArgs.builder()
+                                        .bucket(usersBucketName)
+                                        .object(currentPath.toString())
+                                        .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                                        .build()
+                        );
+                    }
+                    // Добавляем путь в Set
+                    createdPaths.add(currentPath.toString());
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to create folder: " + currentPath, e);
+                }
+            }
+        }
+    }
 
     // скачивание конкретного файла по пути
 

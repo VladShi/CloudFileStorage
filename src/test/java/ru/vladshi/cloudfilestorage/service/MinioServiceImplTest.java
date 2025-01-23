@@ -859,6 +859,277 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
         Files.delete(tempFilePath);
     }
 
+    @Test
+    @DisplayName("Загрузка папки в корневую папку пользователя")
+    void shouldUploadFolderToRoot() throws IOException {
+        // Создаем тестовые файлы
+        String folderName = "my-folder/";
+        String file1Name = "file1.txt";
+        String subFolderName = "sub-folder/";
+        String file2Name = "sub-folder/file2.txt";
+
+        // Создаем временные файлы
+        Path tempFile1 = Files.createTempFile("test-", ".txt");
+        Files.write(tempFile1, "Hello, file1!".getBytes());
+
+        Path tempFile2 = Files.createTempFile("test-", ".txt");
+        Files.write(tempFile2, "Hello, file2!".getBytes());
+
+        // Создаем MultipartFile из временных файлов
+        MultipartFile multipartFile1 = new MockMultipartFile(
+                "file",
+                file1Name,
+                "text/plain",
+                Files.readAllBytes(tempFile1)
+        );
+
+        MultipartFile multipartFile2 = new MockMultipartFile(
+                "file",
+                file2Name,
+                "text/plain",
+                Files.readAllBytes(tempFile2)
+        );
+
+        // Загружаем папку в корневую папку пользователя
+        minioService.uploadFolder(testUserPrefix, "", folderName, new MultipartFile[]{multipartFile1, multipartFile2});
+
+        // Проверяем, что папка создана
+        String fullFolderPath = testUserPrefix + folderName;
+        assertTrue(folderExists(fullFolderPath), "Папка должна быть создана");
+
+        // Проверяем, что файл file1.txt загружен
+        String fullFilePath1 = fullFolderPath + file1Name;
+        assertTrue(fileExists(fullFilePath1), "Файл file1.txt должен быть загружен");
+
+        // Проверяем, что вложенная папка sub-folder создана
+        String fullSubFolderPath = fullFolderPath + subFolderName;
+        assertTrue(folderExists(fullSubFolderPath), "Вложенная папка sub-folder должна быть создана");
+
+        // Проверяем, что файл file2.txt загружен
+        String fullFilePath2 = fullFolderPath + file2Name;
+        assertTrue(fileExists(fullFilePath2), "Файл file2.txt должен быть загружен");
+
+        // Удаляем временные файлы
+        Files.delete(tempFile1);
+        Files.delete(tempFile2);
+    }
+
+    @Test
+    @DisplayName("Загрузка папки во вложенную папку хранилища MinIO")
+    void shouldUploadFolderToNestedFolder() throws IOException {
+        // Создаем тестовые файлы
+        String folderName = "my-folder/";
+        String file1Name = "file1.txt";
+        String subFolderName = "sub-folder/";
+        String file2Name = "sub-folder/file2.txt";
+
+        // Создаем временные файлы
+        Path tempFile1 = Files.createTempFile("test-", ".txt");
+        Files.write(tempFile1, "Hello, file1!".getBytes());
+
+        Path tempFile2 = Files.createTempFile("test-", ".txt");
+        Files.write(tempFile2, "Hello, file2!".getBytes());
+
+        // Создаем MultipartFile из временных файлов
+        MultipartFile multipartFile1 = new MockMultipartFile(
+                "file",
+                file1Name,
+                "text/plain",
+                Files.readAllBytes(tempFile1)
+        );
+
+        MultipartFile multipartFile2 = new MockMultipartFile(
+                "file",
+                file2Name,
+                "text/plain",
+                Files.readAllBytes(tempFile2)
+        );
+
+        // Создаем вложенную папку в MinIO
+        String nestedFolderPath = "Projects/Java/CloudFileStorage/";
+        minioService.createFolder(testUserPrefix, "", nestedFolderPath);
+
+        // Загружаем папку во вложенную папку
+        minioService.uploadFolder(testUserPrefix, nestedFolderPath, folderName, new MultipartFile[]{multipartFile1, multipartFile2});
+
+        // Проверяем, что папка создана
+        String fullFolderPath = testUserPrefix + nestedFolderPath + folderName;
+        assertTrue(folderExists(fullFolderPath), "Папка должна быть создана");
+
+        // Проверяем, что файл file1.txt загружен
+        String fullFilePath1 = fullFolderPath + file1Name;
+        assertTrue(fileExists(fullFilePath1), "Файл file1.txt должен быть загружен");
+
+        // Проверяем, что вложенная папка sub-folder создана
+        String fullSubFolderPath = fullFolderPath + subFolderName;
+        assertTrue(folderExists(fullSubFolderPath), "Вложенная папка sub-folder должна быть создана");
+
+        // Проверяем, что файл file2.txt загружен
+        String fullFilePath2 = fullFolderPath + file2Name;
+        assertTrue(fileExists(fullFilePath2), "Файл file2.txt должен быть загружен");
+
+        // Удаляем временные файлы
+        Files.delete(tempFile1);
+        Files.delete(tempFile2);
+    }
+
+    @Test
+    @DisplayName("Попытка загрузки папки в несуществующую папку")
+    void shouldThrowExceptionWhenUploadingFolderToNonExistentFolder() throws IOException {
+        // Создаем тестовые файлы
+        String folderName = "my-folder/";
+        String file1Name = "file1.txt";
+
+        // Создаем временный файл
+        Path tempFile1 = Files.createTempFile("test-", ".txt");
+        Files.write(tempFile1, "Hello, file1!".getBytes());
+
+        // Создаем MultipartFile из временного файла
+        MultipartFile multipartFile1 = new MockMultipartFile(
+                "file",
+                file1Name,
+                "text/plain",
+                Files.readAllBytes(tempFile1)
+        );
+
+        // Пытаемся загрузить папку в несуществующую папку
+        String nonExistentFolderPath = "NonExistentFolder/";
+        assertThrows(FolderNotFoundException.class,
+                () -> minioService.uploadFolder(testUserPrefix, nonExistentFolderPath, folderName, new MultipartFile[]{multipartFile1}),
+                "Должно выбрасываться исключение при попытке загрузить папку в несуществующую папку");
+
+        // Удаляем временный файл
+        Files.delete(tempFile1);
+    }
+
+    @Test
+    @DisplayName("Попытка загрузки папки с уже существующим именем")
+    void shouldThrowExceptionWhenUploadingFolderWithExistingName() throws IOException {
+        // Создаем тестовые файлы
+        String folderName = "my-folder/";
+        String file1Name = "file1.txt";
+
+        // Создаем временный файл
+        Path tempFile1 = Files.createTempFile("test-", ".txt");
+        Files.write(tempFile1, "Hello, file1!".getBytes());
+
+        // Создаем MultipartFile из временного файла
+        MultipartFile multipartFile1 = new MockMultipartFile(
+                "file",
+                file1Name,
+                "text/plain",
+                Files.readAllBytes(tempFile1)
+        );
+
+        // Создаем папку с таким же именем
+        minioService.createFolder(testUserPrefix, "", folderName);
+
+        // Пытаемся загрузить папку с уже существующим именем
+        assertThrows(FolderAlreadyExistsException.class,
+                () -> minioService.uploadFolder(testUserPrefix, "", folderName, new MultipartFile[]{multipartFile1}),
+                "Должно выбрасываться исключение при попытке загрузить папку с уже существующим именем");
+
+        // Удаляем временный файл
+        Files.delete(tempFile1);
+    }
+
+    @Test
+    @DisplayName("Загрузка папки с несколькими уровнями вложенности и множеством файлов")
+    void shouldUploadFolderWithNestedFoldersAndMultipleFiles() throws IOException {
+        // Создаем тестовые файлы
+        String folderName = "my-folder/";
+        String file1Name = "file1.txt";
+        String subFolder1Name = "sub-folder1/";
+        String file2Name = "sub-folder1/file2.txt";
+        String file3Name = "sub-folder1/file3.txt"; // Добавляем второй файл в sub-folder1
+        String subFolder2Name = "sub-folder1/sub-folder2/";
+        String file4Name = "sub-folder1/sub-folder2/file4.txt";
+
+        // Создаем временные файлы
+        Path tempFile1 = Files.createTempFile("test-", ".txt");
+        Files.write(tempFile1, "Hello, file1!".getBytes());
+
+        Path tempFile2 = Files.createTempFile("test-", ".txt");
+        Files.write(tempFile2, "Hello, file2!".getBytes());
+
+        Path tempFile3 = Files.createTempFile("test-", ".txt");
+        Files.write(tempFile3, "Hello, file3!".getBytes());
+
+        Path tempFile4 = Files.createTempFile("test-", ".txt");
+        Files.write(tempFile4, "Hello, file4!".getBytes());
+
+        // Создаем MultipartFile из временных файлов
+        MultipartFile multipartFile1 = new MockMultipartFile(
+                "file",
+                file1Name,
+                "text/plain",
+                Files.readAllBytes(tempFile1)
+        );
+
+        MultipartFile multipartFile2 = new MockMultipartFile(
+                "file",
+                file2Name,
+                "text/plain",
+                Files.readAllBytes(tempFile2)
+        );
+
+        MultipartFile multipartFile3 = new MockMultipartFile(
+                "file",
+                file3Name,
+                "text/plain",
+                Files.readAllBytes(tempFile3)
+        );
+
+        MultipartFile multipartFile4 = new MockMultipartFile(
+                "file",
+                file4Name,
+                "text/plain",
+                Files.readAllBytes(tempFile4)
+        );
+
+        // Загружаем папку с несколькими уровнями вложенности
+        minioService.uploadFolder(
+                testUserPrefix,
+                "",
+                folderName,
+                new MultipartFile[]{multipartFile1, multipartFile2, multipartFile3, multipartFile4}
+        );
+
+        // Проверяем, что папка создана
+        String fullFolderPath = testUserPrefix + folderName;
+        assertTrue(folderExists(fullFolderPath), "Папка должна быть создана");
+
+        // Проверяем, что файл file1.txt загружен
+        String fullFilePath1 = fullFolderPath + file1Name;
+        assertTrue(fileExists(fullFilePath1), "Файл file1.txt должен быть загружен");
+
+        // Проверяем, что вложенная папка sub-folder1 создана
+        String fullSubFolder1Path = fullFolderPath + subFolder1Name;
+        assertTrue(folderExists(fullSubFolder1Path), "Вложенная папка sub-folder1 должна быть создана");
+
+        // Проверяем, что файл file2.txt загружен
+        String fullFilePath2 = fullFolderPath + file2Name;
+        assertTrue(fileExists(fullFilePath2), "Файл file2.txt должен быть загружен");
+
+        // Проверяем, что файл file3.txt загружен
+        String fullFilePath3 = fullFolderPath + file3Name;
+        assertTrue(fileExists(fullFilePath3), "Файл file3.txt должен быть загружен");
+
+        // Проверяем, что вложенная папка sub-folder2 создана
+        String fullSubFolder2Path = fullFolderPath + subFolder2Name;
+        assertTrue(folderExists(fullSubFolder2Path), "Вложенная папка sub-folder2 должна быть создана");
+
+        // Проверяем, что файл file4.txt загружен
+        String fullFilePath4 = fullFolderPath + file4Name;
+        assertTrue(fileExists(fullFilePath4), "Файл file4.txt должен быть загружен");
+
+        // Удаляем временные файлы
+        Files.delete(tempFile1);
+        Files.delete(tempFile2);
+        Files.delete(tempFile3);
+        Files.delete(tempFile4);
+    }
+
     private boolean folderExists(String folderPath) {
         if (folderPath != null && !folderPath.isBlank() && !folderPath.endsWith("/")) {
             folderPath = folderPath + "/";

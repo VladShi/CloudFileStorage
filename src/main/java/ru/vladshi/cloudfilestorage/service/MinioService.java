@@ -20,4 +20,6 @@ public interface MinioService {
     void deleteFile(String basePath, String folderPath, String fileName);
 
     void renameFile(String basePath, String folderPath, String oldFileName, String newFileName);
+
+    void uploadFolder(String basePath, String folderPath, String folderName, MultipartFile[] files);
 }
