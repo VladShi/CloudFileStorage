@@ -1183,14 +1183,14 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     }
 
     @Test
-    @DisplayName("Файл не найден")
-    void shouldThrowExceptionWhenFileNotFound() {
+    @DisplayName("Должен выкидывать исключение при скачивании несуществующего файла")
+    void shouldThrowExceptionWhenDownloadingNonExistentFile() {
         // Arrange
         String folderPath = "documents/";
         String fileName = "report.pdf";
 
         // Act & Assert
-        FileNotFoundInStorageException exception = assertThrows(
+        assertThrows(
                 FileNotFoundInStorageException.class,
                 () -> minioService.downloadFile(testUserPrefix, folderPath, fileName)
         );
