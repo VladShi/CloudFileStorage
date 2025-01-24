@@ -8,6 +8,7 @@ import io.minio.messages.Item;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.vladshi.cloudfilestorage.dto.StorageItem;
@@ -15,6 +16,7 @@ import ru.vladshi.cloudfilestorage.exception.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -596,6 +598,41 @@ public class MinioServiceImpl implements MinioService {
     }
 
     // скачивание конкретного файла по пути
+    @Override
+    public InputStreamResource downloadFile(String basePath, String folderPath, String fileName) {
+        // Формируем полный путь к файлу
+        String fullPath = basePath;
+        if (folderPath != null && !folderPath.isBlank()) {
+            fullPath += folderPath;
+            if (!fullPath.endsWith("/")) {
+                fullPath += "/";
+            }
+        }
+        fullPath += fileName;
+
+        try {
+            // Получаем объект из MinIO
+            InputStream inputStream = minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(usersBucketName)
+                            .object(fullPath)
+                            .build()
+            );
+
+            // Возвращаем InputStreamResource для скачивания
+            return new InputStreamResource(inputStream);
+        } catch (ErrorResponseException e) {
+            // Проверяем, что файл не найден
+            if ("NoSuchKey".equals(e.errorResponse().code())) {
+                throw new FileNotFoundInStorageException("File not found: " + fullPath);
+            }
+            // Пробрасываем другие ошибки
+            throw new RuntimeException("Failed to download file: " + fullPath, e);
+        } catch (Exception e) {
+            // Обрабатываем другие исключения
+            throw new RuntimeException("Failed to download file: " + fullPath, e);
+        }
+    }
 
     // скачивание конкретной папки со всем вложенным по пути
 

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -21,6 +22,7 @@ import ru.vladshi.cloudfilestorage.exception.FolderAlreadyExistsException;
 import ru.vladshi.cloudfilestorage.exception.FolderNotFoundException;
 import ru.vladshi.cloudfilestorage.util.UserPrefixUtil;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -1128,6 +1130,70 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
         Files.delete(tempFile2);
         Files.delete(tempFile3);
         Files.delete(tempFile4);
+    }
+
+    @Test
+    @DisplayName("Успешное скачивание файла из корневой папки пользователя")
+    void shouldDownloadFileFromRootFolderSuccessfully() throws Exception {
+        // Arrange
+        String folderPath = ""; // Пустая строка, так как файл находится в корневой папке
+        String fileName = "report.pdf";
+        String fullPath = testUserPrefix + fileName; // Полный путь к файлу
+
+        // Загружаем тестовый файл в MinIO (в корневую папку пользователя)
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullPath)
+                        .stream(new ByteArrayInputStream("file content".getBytes()), 12, -1)
+                        .build()
+        );
+
+        // Act
+        InputStreamResource result = minioService.downloadFile(testUserPrefix, folderPath, fileName);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("file content", new String(result.getInputStream().readAllBytes()));
+    }
+
+    @Test
+    @DisplayName("Успешное скачивание файла из вложенной папки")
+    void shouldDownloadFileFromNestedFolderSuccessfully() throws Exception {
+        // Arrange
+        String folderPath = "documents/";
+        String fileName = "report.pdf";
+        String fullPath = testUserPrefix + folderPath + fileName;
+
+        // Загружаем тестовый файл в MinIO
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullPath)
+                        .stream(new ByteArrayInputStream("file content".getBytes()), 12, -1)
+                        .build()
+        );
+
+        // Act
+        InputStreamResource result = minioService.downloadFile(testUserPrefix, folderPath, fileName);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("file content", new String(result.getInputStream().readAllBytes()));
+    }
+
+    @Test
+    @DisplayName("Файл не найден")
+    void shouldThrowExceptionWhenFileNotFound() {
+        // Arrange
+        String folderPath = "documents/";
+        String fileName = "report.pdf";
+
+        // Act & Assert
+        FileNotFoundInStorageException exception = assertThrows(
+                FileNotFoundInStorageException.class,
+                () -> minioService.downloadFile(testUserPrefix, folderPath, fileName)
+        );
     }
 
     private boolean folderExists(String folderPath) {
