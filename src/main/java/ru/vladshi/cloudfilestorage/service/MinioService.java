@@ -25,4 +25,6 @@ public interface MinioService {
     void uploadFolder(String basePath, String folderPath, String folderName, MultipartFile[] files);
 
     InputStreamResource downloadFile(String basePath, String folderPath, String fileName);
+
+    InputStreamResource downloadFolder(String basePath, String folderPath, String folderName);
 }

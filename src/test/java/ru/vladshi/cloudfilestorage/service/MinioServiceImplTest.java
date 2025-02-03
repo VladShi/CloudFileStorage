@@ -26,7 +26,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1194,6 +1198,150 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
                 FileNotFoundInStorageException.class,
                 () -> minioService.downloadFile(testUserPrefix, folderPath, fileName)
         );
+    }
+
+    @Test
+    @DisplayName("Успешное скачивание папки в виде ZIP-архива")
+    void shouldDownloadFolderAsZipSuccessfully() throws Exception {
+        // Arrange
+        String folderPath = "documents/";
+        String folderName = "my-folder";
+        String fullFolderPath = testUserPrefix + folderPath + folderName + "/";
+
+        // Загружаем тестовые файлы в MinIO
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullFolderPath + "file1.txt")
+                        .stream(new ByteArrayInputStream("file1 content".getBytes()), 13, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullFolderPath + "sub-folder/file2.txt")
+                        .stream(new ByteArrayInputStream("file2 content".getBytes()), 13, -1)
+                        .build()
+        );
+
+        // Добавляем пустые объекты для папок
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(testUserPrefix + folderPath)
+                        .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullFolderPath)
+                        .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullFolderPath + "sub-folder/another-empty-folder/")
+                        .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                        .build()
+        );
+
+        // Act
+        InputStreamResource result = minioService.downloadFolder(testUserPrefix, folderPath, folderName);
+
+        // Assert
+        assertNotNull(result);
+
+        // Проверяем содержимое ZIP-архива
+        try (ZipInputStream zipIn = new ZipInputStream(result.getInputStream())) {
+            ZipEntry entry;
+            Map<String, String> files = new HashMap<>();
+            while ((entry = zipIn.getNextEntry()) != null) {
+                files.put(entry.getName(), new String(zipIn.readAllBytes()));
+            }
+
+            assertEquals(2, files.size());
+            assertEquals("file1 content", files.get("file1.txt"));
+            assertEquals("file2 content", files.get("sub-folder/file2.txt"));
+        }
+    }
+
+    @Test
+    @DisplayName("Попытка скачивания несуществующей папки")
+    void shouldThrowExceptionWhenFolderNotFound() {
+        // Arrange
+        String folderPath = "documents/";
+        String folderName = "non-existent-folder";
+
+        // Act & Assert
+        FolderNotFoundException exception = assertThrows(
+                FolderNotFoundException.class,
+                () -> minioService.downloadFolder(testUserPrefix, folderPath, folderName)
+        );
+        assertEquals("Folder does not exist: " + testUserPrefix + folderPath + folderName + "/", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Скачивание папки с файлами, содержащими специальные символы в именах")
+    void shouldDownloadFolderWithSpecialCharactersInFileNames() throws Exception {
+        // Arrange
+        String folderPath = "documents/";
+        String folderName = "special-chars-folder";
+        String fullFolderPath = testUserPrefix + folderPath + folderName + "/";
+
+        // Загружаем тестовые файлы в MinIO
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullFolderPath + "file with spaces.txt")
+                        .stream(new ByteArrayInputStream("file with spaces content".getBytes()), 24, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullFolderPath + "файл-на-кириллице.txt")
+                        .stream(new ByteArrayInputStream("файл-на-кириллице content".getBytes()),
+                                "файл-на-кириллице content".getBytes().length, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullFolderPath + "file#with#special#chars.txt")
+                        .stream(new ByteArrayInputStream("file#with#special#chars content".getBytes()),
+                                "file#with#special#chars content".getBytes().length, -1)
+                        .build()
+        );
+        // Добавляем пустые объекты для папки
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullFolderPath)
+                        .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                        .build()
+        );
+
+        // Act
+        InputStreamResource result = minioService.downloadFolder(testUserPrefix, folderPath, folderName);
+
+        // Assert
+        assertNotNull(result);
+
+        // Проверяем содержимое ZIP-архива
+        try (ZipInputStream zipIn = new ZipInputStream(result.getInputStream())) {
+            ZipEntry entry;
+            Map<String, String> files = new HashMap<>();
+            while ((entry = zipIn.getNextEntry()) != null) {
+                files.put(entry.getName(), new String(zipIn.readAllBytes()));
+            }
+
+            assertEquals(3, files.size());
+            assertEquals("file with spaces content", files.get("file with spaces.txt"));
+            assertEquals("файл-на-кириллице content", files.get("файл-на-кириллице.txt"));
+            assertEquals("file#with#special#chars content", files.get("file#with#special#chars.txt"));
+        }
     }
 
     private boolean folderExists(String folderPath) {

@@ -16,12 +16,17 @@ import ru.vladshi.cloudfilestorage.exception.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class MinioServiceImpl implements MinioService {
@@ -635,6 +640,85 @@ public class MinioServiceImpl implements MinioService {
     }
 
     // скачивание конкретной папки со всем вложенным по пути
+    @Override
+    public InputStreamResource downloadFolder(String basePath, String folderPath, String folderName) {
+        // Формируем полный путь к папке
+        if (folderName == null || folderName.isBlank()) {
+            throw new IllegalArgumentException("Folder name cannot be null or empty");
+        } else if (!folderName.endsWith("/")) {
+            folderName += "/";
+        }
+
+        // Убедимся, что folderPath заканчивается на "/", и не пустое
+        if (folderPath == null || folderPath.isBlank()) {
+            folderPath = "";
+        } else if (!folderPath.endsWith("/")) {
+            folderPath += "/";
+        }
+
+        String fullFolderPath = basePath + folderPath + folderName;
+
+        Path tempZipFile = null;
+
+        try {
+
+            // Проверяем, что папка, которую скачиваем, существует
+            if (!folderExists(fullFolderPath)) {
+                throw new FolderNotFoundException("Folder does not exist: " + fullFolderPath);
+            }
+
+            // Получаем список всех объектов в папке (рекурсивно)
+            Iterable<Result<Item>> results = minioClient.listObjects(
+                    ListObjectsArgs.builder()
+                            .bucket(usersBucketName)
+                            .prefix(fullFolderPath)
+                            .recursive(true)
+                            .build()
+            );
+
+            // Создаем временный файл для ZIP-архива
+            tempZipFile = Files.createTempFile("folder-", ".zip");
+            try (ZipOutputStream zipOut = new ZipOutputStream(Files.newOutputStream(tempZipFile))) {
+                // Добавляем каждый файл в архив
+                for (Result<Item> result : results) {
+                    Item item = result.get();
+                    String objectName = item.objectName();
+                    boolean isFolder = objectName.endsWith("/");
+                    if (!isFolder) { // Пропускаем папки, так как они создаются автоматически
+                        String entryName = objectName.substring(fullFolderPath.length()); // Относительный путь в архиве
+
+                        // Добавляем файл в архив
+                        zipOut.putNextEntry(new ZipEntry(entryName));
+                        try (InputStream inputStream = minioClient.getObject(
+                                GetObjectArgs.builder()
+                                        .bucket(usersBucketName)
+                                        .object(objectName)
+                                        .build()
+                        )) {
+                            inputStream.transferTo(zipOut);
+                        }
+                        zipOut.closeEntry();
+                    }
+                }
+            }
+
+            // Возвращаем ZIP-архив в виде InputStreamResource
+            return new InputStreamResource(Files.newInputStream(tempZipFile));
+        } catch (FolderNotFoundException e) {
+            throw e; // Пробрасываем кастомные исключения
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to download folder: " + fullFolderPath, e);
+        } finally {
+            if (tempZipFile != null) {
+                try {
+                    Files.deleteIfExists(tempZipFile); // Удаляем временный файл
+                } catch (IOException e) {
+                    // Логируем ошибку удаления файла (если она произошла)
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
     // поиск по имени, части имени
 }
