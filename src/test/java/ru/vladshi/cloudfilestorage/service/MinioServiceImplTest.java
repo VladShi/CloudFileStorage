@@ -1344,6 +1344,120 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
         }
     }
 
+    @Test
+    @DisplayName("Поиск файлов и папок по имени")
+    void shouldSearchFilesByName() throws Exception {
+        // Arrange
+        String query = "мокр";
+
+        // Загружаем тестовые файлы в MinIO
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(testUserPrefix + "мокрые/")
+                        .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(testUserPrefix + "мокрые/мокрый зонт.jpg")
+                        .stream(new ByteArrayInputStream("content".getBytes()), 7, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(testUserPrefix + "мокрые/дырочки.jpg")
+                        .stream(new ByteArrayInputStream("content".getBytes()), 7, -1)
+                        .build()
+        );
+
+        // Act
+        List<StorageItem> results = minioService.searchItems(testUserPrefix, query);
+
+        // Assert
+        assertEquals(2, results.size());
+        assertEquals(testUserPrefix + "мокрые/", results.get(0).name());
+        assertEquals(testUserPrefix + "мокрые/мокрый зонт.jpg", results.get(1).name());
+    }
+
+    @Test
+    @DisplayName("Поиск файлов в корневой папке пользователя")
+    void shouldSearchFilesInRootFolder() throws Exception {
+        // Arrange
+        String query = "file";
+
+        // Загружаем тестовые файлы в MinIO
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(testUserPrefix + "file1.txt")
+                        .stream(new ByteArrayInputStream("content".getBytes()), 7, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(testUserPrefix + "file2.txt")
+                        .stream(new ByteArrayInputStream("content".getBytes()), 7, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(testUserPrefix + "image.jpg")
+                        .stream(new ByteArrayInputStream("content".getBytes()), 7, -1)
+                        .build()
+        );
+
+        // Act
+        List<StorageItem> results = minioService.searchItems(testUserPrefix, query);
+
+        // Assert
+        assertEquals(2, results.size());
+        assertEquals(testUserPrefix + "file1.txt", results.get(0).name());
+        assertEquals(testUserPrefix + "file2.txt", results.get(1).name());
+    }
+
+    @Test
+    @DisplayName("Поиск файлов с учётом регистра")
+    void shouldSearchFilesCaseInsensitive() throws Exception {
+        // Arrange
+        String query = "FiLe";
+
+        // Загружаем тестовые файлы в MinIO
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(testUserPrefix + "file1.txt")
+                        .stream(new ByteArrayInputStream("content".getBytes()), 7, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(testUserPrefix + "File2.txt")
+                        .stream(new ByteArrayInputStream("content".getBytes()), 7, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(testUserPrefix + "image.jpg")
+                        .stream(new ByteArrayInputStream("content".getBytes()), 7, -1)
+                        .build()
+        );
+
+        // Act
+        List<StorageItem> results = minioService.searchItems(testUserPrefix, query);
+
+        // Assert
+        assertEquals(2, results.size());
+        assertEquals(testUserPrefix + "File2.txt", results.get(0).name());
+        assertEquals(testUserPrefix + "file1.txt", results.get(1).name());
+    }
+
     private boolean folderExists(String folderPath) {
         if (folderPath != null && !folderPath.isBlank() && !folderPath.endsWith("/")) {
             folderPath = folderPath + "/";

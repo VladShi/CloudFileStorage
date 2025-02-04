@@ -721,4 +721,59 @@ public class MinioServiceImpl implements MinioService {
     }
 
     // поиск по имени, части имени
+    @Override
+    public List<StorageItem> searchItems(String userPrefix, String query) {
+        List<StorageItem> results = new ArrayList<>();
+
+        try {
+            // Получаем список всех объектов в "папке" пользователя (рекурсивно)
+            Iterable<Result<Item>> objects = minioClient.listObjects(
+                    ListObjectsArgs.builder()
+                            .bucket(usersBucketName)
+                            .prefix(userPrefix)
+                            .recursive(true)
+                            .build()
+            );
+
+            // Фильтруем объекты по имени
+            for (Result<Item> result : objects) {
+                Item item = result.get();
+                String objectName = item.objectName();
+                boolean isFolder = objectName.endsWith("/");
+
+                // Извлекаем имя файла/папки (без пути)
+                String fileName = extractNameFromPath(objectName);
+
+                // Проверяем, содержит ли имя ключевое слово
+                if (fileName.toLowerCase().contains(query.toLowerCase())) {
+                    results.add(new StorageItem(objectName, isFolder, item.size()));
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to search by name: " + query, e);
+        }
+
+        return results;
+    }
+
+    private String extractNameFromPath(String fullPath) {
+        if (fullPath == null || fullPath.isEmpty()) {
+            throw new IllegalArgumentException("Object name cannot be null or empty");
+        }
+
+        // Удаляем последний слэш, если он есть
+        if (fullPath.endsWith("/")) {
+            fullPath = fullPath.substring(0, fullPath.length() - 1);
+        }
+
+        int lastSlashIndex = fullPath.lastIndexOf('/');
+
+        if (lastSlashIndex == -1) {
+            // Полный путь не содержит слэшей, это корневой файл или папка
+            return "/";
+        }
+
+        // Извлекаем имя файла или папки
+        return fullPath.substring(lastSlashIndex + 1);
+    }
 }

@@ -27,4 +27,6 @@ public interface MinioService {
     InputStreamResource downloadFile(String basePath, String folderPath, String fileName);
 
     InputStreamResource downloadFolder(String basePath, String folderPath, String folderName);
+
+    List<StorageItem> searchItems(String userPrefix, String query);
 }
