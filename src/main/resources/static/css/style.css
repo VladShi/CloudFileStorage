@@ -1,3 +1,10 @@
+/* Сброс стандартных стилей */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 /* Общие стили для темной темы */
 body {
     background-color: #333;
@@ -52,4 +59,229 @@ a:hover {
 
 .btn-link:hover {
     background-color: #666;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between; /* Распределение элементов по краям */
+    align-items: center; /* Выравнивание по центру по вертикали */
+    background-color: #3e3e3e; /* Фоновый цвет заголовка */
+    padding: 10px 20px; /* Отступы внутри заголовка */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Тень для заголовка */
+    position: fixed; /* Фиксированное положение */
+    top: 0; /* Верхняя граница */
+    width: 100%; /* Ширина на всю страницу */
+    z-index: 1000; /* Выше остальных элементов */
+}
+
+/* Содержимое заголовка */
+.header-content {
+    display: flex;
+    justify-content: space-between; /* Распределение элементов по краям */
+    align-items: center; /* Выравнивание по центру по вертикали */
+    width: 100%; /* Ширина на всю доступную ширину */
+}
+
+/* Левая часть заголовка */
+.header-left {
+    display: flex;
+    align-items: center; /* Выравнивание по центру по вертикали */
+}
+
+/* Правая часть заголовка */
+.header-right {
+    display: flex;
+    align-items: center; /* Выравнивание по центру по вертикали */
+    gap: 10px; /* Расстояние между элементами */
+}
+
+/* Форма логаута */
+.logout-form {
+    margin: 0; /* Убираем отступы */
+}
+
+/* Основной контент */
+.content {
+    margin-top: 60px; /* Отступ сверху, чтобы избежать перекрытия заголовком */
+    padding: 20px; /* Отступы внутри контента */
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Расстояние между элементами */
+}
+
+/* Строка ввода поиска */
+.search-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-left: 180px;
+}
+
+.search-bar input {
+    flex: 1; /* Занимает все доступное пространство */
+    max-width: 850px; /* Ограничение максимальной ширины */
+    margin-right: 4px;
+}
+
+button.clear-button {
+    padding: 10px 7px;
+}
+
+.search-bar button {
+    margin-left: 2px;
+}
+
+.main-container {
+    display: flex;
+    gap: 20px; /* Расстояние между action-buttons и breadcrumbs-table-container */
+    align-items: flex-start; /* Выравнивание элементов по верхнему краю */
+}
+
+/* Контейнер для кнопок */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Расстояние между кнопками */
+    align-items: flex-start; /* Выравнивание кнопок по левому краю */
+}
+
+.action-button {
+    background-color: #555;
+    color: #fff;
+    border: none;
+    padding: 10px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    width: 160px; /* Фиксированная ширина для всех кнопок */
+    text-align: left; /* Выравнивание текста по левому краю */
+}
+
+.action-button:hover {
+    background-color: #666;
+}
+
+/* Иконки для кнопок */
+.create-folder-button::before {
+    content: '📁'; /* Иконка папки */
+    margin-right: 10px;
+    font-size: 16px;
+}
+
+.upload-file-button::before {
+    content: '📂'; /* Иконка загрузки файла */
+    margin-right: 10px;
+    font-size: 16px;
+}
+
+.upload-folder-button::before {
+    content: '🗂️'; /* Иконка загрузки папки */
+    margin-right: 10px;
+    font-size: 16px;
+}
+
+/* Контейнер для хлебных крошек и таблицы */
+.breadcrumbs-table-container {
+    flex: 1; /* Занимает все доступное пространство */
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Расстояние между хлебными крошками и таблицей */
+}
+
+/* Хлебные крошки */
+.breadcrumbs {
+    display: flex;
+    flex-wrap: wrap; /* Позволяет переноситься на новую строку */
+    align-items: center;
+    flex: 1; /* Занимает все доступное пространство */
+    margin-right: 20px; /* Отступ от кнопок */
+}
+
+.breadcrumbs a {
+    color: #98b4f4;
+    text-decoration: none;
+    margin-right: 5px;
+}
+
+.breadcrumbs a:hover {
+    color: #b5def8;
+    text-decoration: underline;
+}
+
+.breadcrumb-separator {
+    margin: 0 5px; /* Небольшой пробел между слешами и именами папок */
+}
+
+/* Таблица файлов и папок */
+.file-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    border-radius: 5px; /* Скругление углов таблицы */
+    overflow: hidden; /* Скрытие переполнения для корректного скругления углов */
+}
+
+.file-table th, .file-table td {
+    padding: 8px;
+    line-height: 1.2;
+    border: 1px solid #444;
+    text-align: left;
+}
+
+.file-table th {
+    background-color: #555;
+    color: #fff;
+    border-bottom: 1px solid #444; /* Добавление разделителя между заголовками и строками */
+}
+
+/* Стили для первой строки таблицы */
+.file-table tbody tr:first-child td {
+    border-top: 1px solid #444; /* Добавление верхней границы для первой строки */
+}
+
+/* Стили для последней строки таблицы */
+.file-table tbody tr:last-child td {
+    border-bottom: 1px solid #444; /* Добавление нижней границы для последней строки */
+}
+
+.file-table .size-column {
+    text-align: right;
+    width: 150px; /* Фиксированная ширина для столбца Size */
+}
+
+.file-table .actions-column {
+    width: 100px; /* Фиксированная ширина для столбца Actions */
+    text-align: center;
+}
+
+.file-table .actions {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.file-table .actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.file-table .actions button:hover {
+    opacity: 0.7;
+}
+
+/* Иконки */
+.folder-icon {
+    margin-right: 5px;
+    font-size: 16px;
+}
+
+.file-icon {
+    margin-right: 5px;
+    font-size: 16px;
+}
+
+.icon-download, .icon-rename, .icon-delete {
+    font-size: 16px;
 }

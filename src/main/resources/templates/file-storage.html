@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+    <link rel="stylesheet" type="text/css" href="/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <a href="/" class="home-link">Home</a>
+            </div>
+            <div class="header-right">
+                <span sec:authentication="name">User</span>
+                <form th:action="@{/auth/logout}" method="post" class="logout-form">
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </div>
+    </header>
+    <div class="content">
+        <!-- Строка ввода поиска -->
+        <form action="/search" method="get" class="search-bar">
+            <input type="text" id="search-query" placeholder="Search..." th:value="${searchQuery}"  maxlength="100" />
+<!--            <button class="clear-button" onclick="document.getElementById('search-query').value = '';">X</button>-->
+            <button class="search-button">Search</button>
+        </form>
+
+        <!-- Контейнер для кнопок и хлебных крошек+таблицы -->
+        <div class="main-container">
+            <!-- Контейнер для кнопок -->
+            <div class="action-buttons">
+                <button class="action-button create-folder-button">Create Folder</button>
+                <button class="action-button upload-file-button">Upload File</button>
+                <button class="action-button upload-folder-button">Upload Folder</button>
+            </div>
+            <!-- Контейнер для хлебных крошек и таблицы -->
+            <div class="breadcrumbs-table-container">
+                <!-- Хлебные крошки -->
+                <div class="breadcrumbs">
+                    <a href="/" class="home-crumb">🏠</a>
+                    <span th:each="crumb, iterStat : ${breadcrumbs}">
+                        <span class="breadcrumb-separator">/</span>
+                        <a th:if="${not iterStat.last}" th:href="@{/(path=${crumb.path()})}" th:text="${crumb.name()}"></a>
+                        <span th:if="${iterStat.last}" th:text="${crumb.name()}" style="font-weight: bold"></span>
+                    </span>
+                </div>
+                <!-- Таблица файлов и папок -->
+                <table class="file-table">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th class="size-column">Size</th>
+                        <th class="actions-column"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="item : ${items}">
+                        <td>
+                            <span th:if="${item.isFolder}" class="folder-icon">&#128193;</span>
+                            <span th:if="${not item.isFolder}" class="file-icon">&#128462;</span>
+                            <a th:href="@{${item.isFolder ? '/files/' + item.name() : '#'}}" th:text="${item.name()}"></a>
+                        </td>
+                        <td class="size-column" th:text="${item.isFolder ? '-' : item.size() + ' bytes'}"></td>
+                        <td class="actions-column">
+                            <div class="actions">
+                                <button class="download-button" title="Download">
+                                    <span class="icon-download">⬇️</span>
+                                </button>
+                                <button class="rename-button" title="Rename">
+                                    <span class="icon-rename">📝</span>
+                                </button>
+                                <button class="delete-button" title="Delete">
+                                    <span class="icon-delete">❌</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

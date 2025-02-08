@@ -6,7 +6,7 @@
     <link rel="stylesheet" type="text/css" href="/css/style.css">
 </head>
 <body>
-
+<div class="content">
     <h1>Login</h1>
 
     <div th:if="${param.error}">
@@ -30,5 +30,6 @@
     </form>
     <br>
     <p>Don't have an account? <a th:href="@{/auth/register}">Register here</a></p>
+</div>
 </body>
 </html>
