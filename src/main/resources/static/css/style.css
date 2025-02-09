@@ -114,7 +114,7 @@ a:hover {
     display: flex;
     align-items: center;
     margin-bottom: 20px;
-    padding-left: 180px;
+    padding-left: 200px;
 }
 
 .search-bar input {
@@ -153,12 +153,17 @@ button.clear-button {
     border-radius: 4px;
     cursor: pointer;
     text-decoration: none;
-    width: 160px; /* Фиксированная ширина для всех кнопок */
+    width: 180px; /* Фиксированная ширина для всех кнопок */
     text-align: left; /* Выравнивание текста по левому краю */
 }
 
 .action-button:hover {
     background-color: #666;
+}
+
+/* Поле ввода для создания папки */
+.action-form-create-folder input {
+    width: 180px;
 }
 
 /* Иконки для кнопок */
@@ -284,4 +289,39 @@ button.clear-button {
 
 .icon-download, .icon-rename, .icon-delete {
     font-size: 16px;
+}
+
+/* Всплывающие окна */
+.alert {
+    padding: 10px 20px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.alert-success {
+    background-color: #bbd8c1;
+    color: #155724;
+    border: 1px solid #a9d1b1;
+}
+
+.alert-danger {
+    background-color: #e8c7ca;
+    color: #721c24;
+    border: 1px solid #cc9da2;
+}
+
+.alert .close {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.alert .close:hover {
+    opacity: 0.7;
 }

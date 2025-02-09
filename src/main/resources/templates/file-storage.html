@@ -32,7 +32,13 @@
         <div class="main-container">
             <!-- Контейнер для кнопок -->
             <div class="action-buttons">
-                <button class="action-button create-folder-button">Create Folder</button>
+                <form th:action="@{/create-folder}" method="post" class="action-form-create-folder">
+                    <input type="hidden" name="path" th:value="${path}" />
+                    <input type="text" name="newFolderName" placeholder="New folder name" required />
+                    <br>
+                    <button type="submit" class="action-button create-folder-button">Create Folder</button>
+                </form>
+                <br>
                 <button class="action-button upload-file-button">Upload File</button>
                 <button class="action-button upload-folder-button">Upload Folder</button>
             </div>
@@ -47,6 +53,19 @@
                         <span th:if="${iterStat.last}" th:text="${crumb.name()}" style="font-weight: bold"></span>
                     </span>
                 </div>
+                <!-- Сообщения об успешном создании и ошибках -->
+                <div th:if="${successMessage}" class="alert alert-success" role="alert">
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
                 <!-- Таблица файлов и папок -->
                 <table class="file-table">
                     <thead>
@@ -57,13 +76,32 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="item : ${items}">
+                    <tr th:each="item : ${items}" th:if="${item.isFolder()}">
                         <td>
-                            <span th:if="${item.isFolder}" class="folder-icon">&#128193;</span>
-                            <span th:if="${not item.isFolder}" class="file-icon">&#128462;</span>
-                            <a th:href="@{${item.isFolder ? '/files/' + item.name() : '#'}}" th:text="${item.name()}"></a>
+                            <span class="folder-icon">&#128193;</span>
+                            <a th:href="@{/(path=${item.relativePath()})}" th:text="${item.getName()}"></a>
                         </td>
-                        <td class="size-column" th:text="${item.isFolder ? '-' : item.size() + ' bytes'}"></td>
+                        <td class="size-column" th:text="'-'"></td>
+                        <td class="actions-column">
+                            <div class="actions">
+                                <button class="download-button" title="Download">
+                                    <span class="icon-download">⬇️</span>
+                                </button>
+                                <button class="rename-button" title="Rename">
+                                    <span class="icon-rename">📝</span>
+                                </button>
+                                <button class="delete-button" title="Delete">
+                                    <span class="icon-delete">❌</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:each="item : ${items}" th:if="${not item.isFolder}">
+                        <td>
+                            <span class="file-icon">&#128462;</span>
+                            <span th:text="${item.getName()}"></span>
+                        </td>
+                        <td class="size-column" th:text="${item.size() + ' bytes'}"></td>
                         <td class="actions-column">
                             <div class="actions">
                                 <button class="download-button" title="Download">
@@ -83,5 +121,22 @@
             </div>
         </div>
     </div>
+
+    <!-- JavaScript для закрытия всплывающих окон -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const closeButtons = document.querySelectorAll('.alert .close');
+            closeButtons.forEach(button => {
+                button.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const alert = this.closest('.alert');
+                    if (alert) {
+                        alert.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+
 </body>
 </html>

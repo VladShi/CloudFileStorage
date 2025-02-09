@@ -55,18 +55,19 @@ public class MinioServiceImpl implements MinioService {
 
     // получение содержимого конкретной папки пользователя для отображения во вью
     @Override
-    public List<StorageItem> getItems(String basePath, String path) {
+    public List<StorageItem> getItems(String userPrefix, String folderPath) {
         List<StorageItem> items = new ArrayList<>();
 
-        String fullPrefix = basePath;
-        if (path != null && !path.isBlank()) {
-            fullPrefix = basePath + path;
-            if (!fullPrefix.endsWith("/")) {
-                fullPrefix += "/";
-            }
+        String fullPrefix = userPrefix;
+        if (folderPath != null && !folderPath.isBlank()) {
+            fullPrefix += folderPath;
+        }
+        if (!fullPrefix.endsWith("/")) {
+            fullPrefix += "/";
         }
 
         try {
+            // TODO добавить проверку существования path если оно не пустое(folderExists), в случае если не существует то кидаем исключение и по нему на главную страницу
             Iterable<Result<Item>> results = minioClient.listObjects(
                     ListObjectsArgs.builder()
                             .bucket(usersBucketName)
@@ -79,10 +80,11 @@ public class MinioServiceImpl implements MinioService {
 
             for (Result<Item> result : results) {
                 Item item = result.get();
-                String objectName = item.objectName();
-                boolean isFolder = objectName.endsWith("/");
+                String fullItemPath = item.objectName();
+                String relativePath = fullItemPath.substring(userPrefix.length());
+                boolean isFolder = fullItemPath.endsWith("/");
 
-                items.add(new StorageItem(objectName, isFolder, item.size()));
+                items.add(new StorageItem(relativePath, isFolder, item.size()));
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to list user items", e);
@@ -91,44 +93,35 @@ public class MinioServiceImpl implements MinioService {
         return items;
     }
 
-    // создание какой-то папки по указанному пути
     @Override
-    public void createFolder(String basePath, String folderPath, String newFolderName) {
+    public void createFolder(String userPrefix, String folderPath, String newFolderName) {
         if (newFolderName == null || newFolderName.isBlank()) {
             throw new IllegalArgumentException("Folder name cannot be null or empty");
-        } else if (!newFolderName.endsWith("/")) {
-            newFolderName += "/";
         }
 
-        // Убедимся, что folderPath заканчивается на "/", и не пустое
-        if (folderPath == null || folderPath.isBlank()) {
-            folderPath = "";
-        } else if (!folderPath.endsWith("/")) {
-            folderPath += "/";
+        String fullPrefix = userPrefix;
+        if (folderPath != null && !folderPath.isBlank()) {
+            fullPrefix += folderPath;
+        }
+        if (!fullPrefix.endsWith("/")) {
+            fullPrefix += "/";
         }
 
-        // Полный путь к родительской папке
-        String parentPath = basePath + folderPath;
-
-        // Полный путь к новой папке
-        String fullPath = parentPath + newFolderName;
+        String fullNewFolderPath = fullPrefix + newFolderName + "/";
 
         try {
-            // Проверяем, существует ли родительская папка, если она не является базовой папкой
-            if (!folderPath.isEmpty() && !folderExists(parentPath)) {
-                throw new FolderNotFoundException("Folder does not exist: " + parentPath);
+            if (!fullPrefix.equals(userPrefix + "/") && !folderExists(fullPrefix)) {
+                throw new FolderNotFoundException("Folder does not exist: " + fullPrefix);
             }
 
-            // Проверяем, существует ли уже новая папка
-            if (folderExists(fullPath)) {
-                throw new FolderAlreadyExistsException("Folder already exists: " + fullPath);
+            if (folderExists(fullNewFolderPath)) {
+                throw new FolderAlreadyExistsException("Folder already exists: " + fullNewFolderPath);
             }
 
-            // Создаем папку (пустой объект)
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(usersBucketName)
-                            .object(fullPath)
+                            .object(fullNewFolderPath)
                             .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
                             .build()
             );
@@ -136,7 +129,7 @@ public class MinioServiceImpl implements MinioService {
             // Пробрасываем кастомные исключения дальше
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create folder: " + fullPath, e);
+            throw new RuntimeException("Failed to create folder: " + fullNewFolderPath, e);
         }
     }
 
@@ -161,7 +154,7 @@ public class MinioServiceImpl implements MinioService {
     @Override
     public void deleteFolder(String basePath, String folderPath, String folderName) {
         if (folderName == null || folderName.isBlank()) {
-            throw new IllegalArgumentException("Folder name cannot be null or empty");
+            throw new IllegalArgumentException("Folder relativePath cannot be null or empty");
         } else if (!folderName.endsWith("/")) {
             folderName += "/";
         }
@@ -225,13 +218,13 @@ public class MinioServiceImpl implements MinioService {
     @Override
     public void renameFolder(String basePath, String folderPath, String oldFolderName, String newFolderName) {
         if (oldFolderName == null || oldFolderName.isBlank()) {
-            throw new IllegalArgumentException("Folder name cannot be null or empty");
+            throw new IllegalArgumentException("Folder relativePath cannot be null or empty");
         } else if (!oldFolderName.endsWith("/")) {
             oldFolderName += "/";
         }
 
         if (newFolderName == null || newFolderName.isBlank()) {
-            throw new IllegalArgumentException("Folder name cannot be null or empty");
+            throw new IllegalArgumentException("Folder relativePath cannot be null or empty");
         } else if (!newFolderName.endsWith("/")) {
             newFolderName += "/";
         }
@@ -387,7 +380,7 @@ public class MinioServiceImpl implements MinioService {
     @Override
     public void deleteFile(String basePath, String folderPath, String fileName) {
         if (fileName == null || fileName.isBlank()) {
-            throw new IllegalArgumentException("File name cannot be null or empty");
+            throw new IllegalArgumentException("File relativePath cannot be null or empty");
         }
 
         // Убедимся, что folderPath заканчивается на "/", и не пустое
@@ -420,11 +413,11 @@ public class MinioServiceImpl implements MinioService {
     @Override
     public void renameFile(String basePath, String folderPath, String oldFileName, String newFileName) {
         if (oldFileName == null || oldFileName.isBlank()) {
-            throw new IllegalArgumentException("File name cannot be null or empty");
+            throw new IllegalArgumentException("File relativePath cannot be null or empty");
         }
 
         if (newFileName == null || newFileName.isBlank()) {
-            throw new IllegalArgumentException("File name cannot be null or empty");
+            throw new IllegalArgumentException("File relativePath cannot be null or empty");
         }
 
         // Убедимся, что folderPath заканчивается на "/", и не пустое
@@ -482,7 +475,7 @@ public class MinioServiceImpl implements MinioService {
         }
 
         if (folderName == null || folderName.isBlank()) {
-            throw new IllegalArgumentException("Folder name cannot be null or empty");
+            throw new IllegalArgumentException("Folder relativePath cannot be null or empty");
         } else if (!folderName.endsWith("/")) {
             folderName += "/";
         }
@@ -644,7 +637,7 @@ public class MinioServiceImpl implements MinioService {
     public InputStreamResource downloadFolder(String basePath, String folderPath, String folderName) {
         // Формируем полный путь к папке
         if (folderName == null || folderName.isBlank()) {
-            throw new IllegalArgumentException("Folder name cannot be null or empty");
+            throw new IllegalArgumentException("Folder relativePath cannot be null or empty");
         } else if (!folderName.endsWith("/")) {
             folderName += "/";
         }
@@ -738,19 +731,20 @@ public class MinioServiceImpl implements MinioService {
             // Фильтруем объекты по имени
             for (Result<Item> result : objects) {
                 Item item = result.get();
-                String objectName = item.objectName();
-                boolean isFolder = objectName.endsWith("/");
+                String fullItemPath = item.objectName();
+                boolean isFolder = fullItemPath.endsWith("/");
 
                 // Извлекаем имя файла/папки (без пути)
-                String fileName = extractNameFromPath(objectName);
+                String fileName = extractNameFromPath(fullItemPath);
 
                 // Проверяем, содержит ли имя ключевое слово
                 if (fileName.toLowerCase().contains(query.toLowerCase())) {
-                    results.add(new StorageItem(objectName, isFolder, item.size()));
+                    String relativePath = fullItemPath.substring(userPrefix.length());
+                    results.add(new StorageItem(relativePath, isFolder, item.size()));
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to search by name: " + query, e);
+            throw new RuntimeException("Failed to search by relativePath: " + query, e);
         }
 
         return results;
@@ -758,7 +752,7 @@ public class MinioServiceImpl implements MinioService {
 
     private String extractNameFromPath(String fullPath) {
         if (fullPath == null || fullPath.isEmpty()) {
-            throw new IllegalArgumentException("Object name cannot be null or empty");
+            throw new IllegalArgumentException("Object relativePath cannot be null or empty");
         }
 
         // Удаляем последний слэш, если он есть

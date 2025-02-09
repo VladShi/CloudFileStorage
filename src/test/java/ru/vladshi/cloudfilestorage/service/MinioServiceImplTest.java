@@ -20,7 +20,6 @@ import ru.vladshi.cloudfilestorage.exception.FileAlreadyExistsInStorageException
 import ru.vladshi.cloudfilestorage.exception.FileNotFoundInStorageException;
 import ru.vladshi.cloudfilestorage.exception.FolderAlreadyExistsException;
 import ru.vladshi.cloudfilestorage.exception.FolderNotFoundException;
-import ru.vladshi.cloudfilestorage.util.UserPrefixUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -51,7 +50,7 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     public static void init() {
         testUser.setUsername("testuser");
         testUser.setId(1L);
-        testUserPrefix = UserPrefixUtil.generateUserPrefix(testUser.getUsername(), testUser.getId());
+        testUserPrefix = testUser.getUsername();
     }
 
     @BeforeEach
@@ -110,18 +109,18 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
         minioService.createFolder(testUserPrefix, folderPath, newFolderName);
 
         // Проверяем, что папка создалась
-        assertTrue(folderExists(testUserPrefix + newFolderName), "Папка должна быть создана в basePath");
+        assertTrue(folderExists(testUserPrefix + "/" + newFolderName), "Папка должна быть создана в basePath");
     }
 
     @Test
     @DisplayName("Проверяем, что метод getItems возвращает пустой список, если в папке нет папок и файлов")
     void shouldReturnEmptyListIfFolderHasNoFoldersAndFiles() {
         String folderPath = null;
-        String requestedFolderName = "newFolder/";
+        String requestedFolderName = "newFolder";
         minioService.createFolder(testUserPrefix, folderPath, requestedFolderName);
 
         // Проверяем, что папка создалась
-        assertTrue(folderExists(testUserPrefix + requestedFolderName), "Папка должна быть создана в basePath");
+        assertTrue(folderExists(testUserPrefix + "/" + requestedFolderName), "Папка должна быть создана в basePath");
 
         List<StorageItem> items = minioService.getItems(testUserPrefix, requestedFolderName);
 
@@ -131,16 +130,22 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     @Test
     @DisplayName("Создание вложенной папки на два уровня")
     void shouldCreateNestedFolder() {
-        // Сначала создаем промежуточную папку folder1/
-        minioService.createFolder(testUserPrefix, "","folder1");
+        String folderPath = null;
+        String outerFolderName = "someFolder";
+        String outerFolderPath = "/" + outerFolderName + "/";
+        String innerFolderName = "innerFolder";
+        String innerFolderPath = outerFolderPath + innerFolderName + "/";
 
-        // Затем создаем вложенную папку folder1/folder2/
-        minioService.createFolder(testUserPrefix, "folder1/","folder2");
+        // Сначала создаем промежуточную папку
+        minioService.createFolder(testUserPrefix, folderPath, outerFolderName);
+
+        // Затем создаем вложенную папку
+        minioService.createFolder(testUserPrefix, outerFolderPath, innerFolderName);
 
         // Проверяем, что обе папки создались
-        assertTrue(folderExists(testUserPrefix + "folder1/"),
+        assertTrue(folderExists(testUserPrefix + outerFolderPath),
                 "Промежуточная папка должна быть создана");
-        assertTrue(folderExists(testUserPrefix + "folder1/folder2/"),
+        assertTrue(folderExists(testUserPrefix + innerFolderPath),
                 "Вложенная папка должна быть создана");
     }
 
@@ -148,28 +153,30 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     @DisplayName("Проверяем, что метод getItems возвращает вложенную папку, если в папке есть одна вложенная папка")
     void shouldReturnListWithInnerFolderIfFolderHasInnerFolder() {
         String folderPath = null;
-        String requestedFolderName = "someFolder/";
-        String innerFolderName = "innerFolder/";
+        String requestedFolderName = "someFolder";
+        String requestedFolderPath = "/" + requestedFolderName + "/";
+        String innerFolderName = "innerFolder";
+        String innerFolderPath = requestedFolderPath + innerFolderName + "/";
+
         minioService.createFolder(testUserPrefix, folderPath, requestedFolderName);
-        minioService.createFolder(testUserPrefix, requestedFolderName, innerFolderName);
+        minioService.createFolder(testUserPrefix, requestedFolderPath, innerFolderName);
 
         // Проверяем, что папка создалась
-        assertTrue(folderExists(testUserPrefix + requestedFolderName), "Папка должна быть создана в basePath");
-        assertTrue(folderExists(testUserPrefix + requestedFolderName + innerFolderName),
+        assertTrue(folderExists(testUserPrefix + requestedFolderPath), "Папка должна быть создана в basePath");
+        assertTrue(folderExists(testUserPrefix + innerFolderPath),
                 "В запрашиваемой папке должна быть создана внутренняя папка");
 
-        List<StorageItem> items = minioService.getItems(testUserPrefix, requestedFolderName);
+        List<StorageItem> items = minioService.getItems(testUserPrefix, requestedFolderPath);
 
         assertFalse(items.isEmpty(), "Список не должен быть пустым");
         assertEquals(1, items.size(), "Размер списка элементов должен быть равен 1");
-        assertEquals(testUserPrefix + requestedFolderName + innerFolderName, items.getFirst().name(),
-                "Должны получить внутреннюю папку");
+        assertEquals( innerFolderPath, items.getFirst().relativePath(), "Должны получить внутреннюю папку");
     }
 
     @Test
     @DisplayName("Попытка создания вложенной папки в несуществующей папке")
     void shouldThrowExceptionWhenPathForNewPathDoesNotExist() {
-        String nonExistentFolderPath = "folder1/";
+        String nonExistentFolderPath = "/folder1/";
 
         // Убедимся, что промежуточная папка не существует
         assertFalse(folderExists(testUserPrefix + nonExistentFolderPath),
@@ -189,7 +196,7 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
         minioService.createFolder(testUserPrefix, folderPath, folderName);
 
         // Проверяем, что папка создалась
-        assertTrue(folderExists(testUserPrefix + folderPath + folderName), "Папка должна быть создана");
+        assertTrue(folderExists(testUserPrefix + folderPath + "/" + folderName), "Папка должна быть создана");
 
         // Проверяем, что метод выбрасывает исключение при попытке создать существующую папку
         assertThrows(FolderAlreadyExistsException.class,
@@ -1378,8 +1385,8 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
 
         // Assert
         assertEquals(2, results.size());
-        assertEquals(testUserPrefix + "мокрые/", results.get(0).name());
-        assertEquals(testUserPrefix + "мокрые/мокрый зонт.jpg", results.get(1).name());
+        assertEquals(testUserPrefix + "мокрые/", results.get(0).relativePath());
+        assertEquals(testUserPrefix + "мокрые/мокрый зонт.jpg", results.get(1).relativePath());
     }
 
     @Test
@@ -1416,8 +1423,8 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
 
         // Assert
         assertEquals(2, results.size());
-        assertEquals(testUserPrefix + "file1.txt", results.get(0).name());
-        assertEquals(testUserPrefix + "file2.txt", results.get(1).name());
+        assertEquals(testUserPrefix + "file1.txt", results.get(0).relativePath());
+        assertEquals(testUserPrefix + "file2.txt", results.get(1).relativePath());
     }
 
     @Test
@@ -1454,8 +1461,8 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
 
         // Assert
         assertEquals(2, results.size());
-        assertEquals(testUserPrefix + "File2.txt", results.get(0).name());
-        assertEquals(testUserPrefix + "file1.txt", results.get(1).name());
+        assertEquals(testUserPrefix + "File2.txt", results.get(0).relativePath());
+        assertEquals(testUserPrefix + "file1.txt", results.get(1).relativePath());
     }
 
     private boolean folderExists(String folderPath) {
