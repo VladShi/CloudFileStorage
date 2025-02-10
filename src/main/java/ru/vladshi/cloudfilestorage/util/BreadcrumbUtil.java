@@ -16,7 +16,7 @@ public final class BreadcrumbUtil {
 
         if (path != null && !path.isBlank()) {
             String[] parts = path.split("/");
-            StringBuilder currentPath = new StringBuilder();
+            StringBuilder currentPath = new StringBuilder("/");
 
             for (String part : parts) {
                 if (part.isBlank()) continue;

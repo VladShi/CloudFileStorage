@@ -94,8 +94,9 @@ public class MinioServiceImpl implements MinioService {
     }
 
     @Override
-    public void createFolder(String userPrefix, String folderPath, String newFolderName) {
-        if (newFolderName == null || newFolderName.isBlank()) {
+    public void createFolder(String userPrefix, String folderPath, String folderName) {
+        //TODO переименовать параметр folderName, после того как вынесем общую логику для составления и валидации пути
+        if (folderName == null || folderName.isBlank()) {
             throw new IllegalArgumentException("Folder name cannot be null or empty");
         }
 
@@ -107,7 +108,7 @@ public class MinioServiceImpl implements MinioService {
             fullPrefix += "/";
         }
 
-        String fullNewFolderPath = fullPrefix + newFolderName + "/";
+        String fullNewFolderPath = fullPrefix + folderName + "/";
 
         try {
             if (!fullPrefix.equals(userPrefix + "/") && !folderExists(fullPrefix)) {
@@ -122,7 +123,7 @@ public class MinioServiceImpl implements MinioService {
                     PutObjectArgs.builder()
                             .bucket(usersBucketName)
                             .object(fullNewFolderPath)
-                            .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                            .stream(new ByteArrayInputStream(new byte[0]), 0, -1) // TODO вынести как emptyContent для ясности
                             .build()
             );
         } catch (FolderNotFoundException | FolderAlreadyExistsException e) {
@@ -152,34 +153,33 @@ public class MinioServiceImpl implements MinioService {
 
     // удаление папки со всем вложенным
     @Override
-    public void deleteFolder(String basePath, String folderPath, String folderName) {
+    public void deleteFolder(String userPrefix, String folderPath, String folderName) {
+        //TODO переименовать параметр folderName, после того как вынесем общую логику для составления и валидации пути
         if (folderName == null || folderName.isBlank()) {
-            throw new IllegalArgumentException("Folder relativePath cannot be null or empty");
-        } else if (!folderName.endsWith("/")) {
-            folderName += "/";
+            throw new IllegalArgumentException("Folder name cannot be null or empty");
         }
 
-        // Убедимся, что folderPath заканчивается на "/", и не пустое
-        if (folderPath == null || folderPath.isBlank()) {
-            folderPath = "";
-        } else if (!folderPath.endsWith("/")) {
-            folderPath += "/";
+        String fullPrefix = userPrefix;
+        if (folderPath != null && !folderPath.isBlank()) {
+            fullPrefix += folderPath;
+        }
+        if (!fullPrefix.endsWith("/")) {
+            fullPrefix += "/";
         }
 
-        // Полный путь к удаляемой папке
-        String fullPath = basePath + folderPath + folderName;
+        String folderToDeleteFullPath = fullPrefix + folderName + "/";
 
         try {
             // Проверяем, существует ли удаляемая папка
-            if (!folderExists(fullPath)) {
-                throw new FolderNotFoundException("Folder not found: " + fullPath);
+            if (!folderExists(folderToDeleteFullPath)) {
+                throw new FolderNotFoundException("Folder not found: " + folderToDeleteFullPath);
             }
 
             // Получаем список всех объектов в папке (включая вложенные)
             Iterable<Result<Item>> results = minioClient.listObjects(
                     ListObjectsArgs.builder()
                             .bucket(usersBucketName)
-                            .prefix(fullPath)
+                            .prefix(folderToDeleteFullPath)
                             .recursive(true)
                             .build()
             );
@@ -210,7 +210,7 @@ public class MinioServiceImpl implements MinioService {
         } catch (FolderNotFoundException | ObjectDeletionException e) {
             throw e; // Пробрасываем кастомное исключение
         } catch (Exception e) {
-            throw new RuntimeException("Failed to delete folder: " + fullPath, e);
+            throw new RuntimeException("Failed to delete folder: " + folderToDeleteFullPath, e);
         }
     }
 

@@ -90,9 +90,13 @@
                                 <button class="rename-button" title="Rename">
                                     <span class="icon-rename">📝</span>
                                 </button>
-                                <button class="delete-button" title="Delete">
-                                    <span class="icon-delete">❌</span>
-                                </button>
+                                <form th:action="@{/delete-folder}" method="post">
+                                    <input type="hidden" name="path" th:value="${path}" />
+                                    <input type="hidden" name="folderToDelete" th:value="${item.getName()}" required />
+                                    <button class="delete-button" title="Delete">
+                                        <span class="icon-delete">❌</span>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>

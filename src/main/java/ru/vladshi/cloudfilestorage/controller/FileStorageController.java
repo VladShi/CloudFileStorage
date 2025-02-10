@@ -28,7 +28,7 @@ public class FileStorageController {
 
         model.addAttribute("path", path);
         model.addAttribute("breadcrumbs", BreadcrumbUtil.buildBreadcrumbs(path));
-        model.addAttribute("items", minioService.getItems(userDetails.getUsername(), path));
+        model.addAttribute("items", minioService.getItems(userDetails.getUsername(), path)); //TODO добавить обработку path на существование
 
         return "file-storage";
     }
@@ -39,10 +39,27 @@ public class FileStorageController {
                                @RequestParam String newFolderName,
                                RedirectAttributes redirectAttributes) {
         try {
+            //TODO валидацию для newFolderName
             minioService.createFolder(userDetails.getUsername(), path, newFolderName);
             redirectAttributes.addFlashAttribute("successMessage", "Folder created successfully!");
-        } catch (Exception e) {
+        } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute("errorMessage", "Failed to create folder. " + e.getMessage());
+        }
+
+        return "redirect:/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8);
+    }
+
+    @PostMapping("/delete-folder")
+    public String deleteFolder(@AuthenticationPrincipal UserDetails userDetails,
+                               @RequestParam(required = false) String path,
+                               @RequestParam String folderToDelete,
+                               RedirectAttributes redirectAttributes) {
+        try {
+            minioService.deleteFolder(userDetails.getUsername(), path, folderToDelete);
+            redirectAttributes.addFlashAttribute("successMessage", "Folder deleted successfully!");
+        } catch (Exception e) { //TODO показывать message только для кастомных исключений
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage", "Failed to delete folder. " + e.getMessage());
         }
 
         return "redirect:/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8);

@@ -46,6 +46,16 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     private final static User testUser = new User(); // TODO нужен ли пользователь тут?
     private static String testUserPrefix;
 
+    private static final String ROOT_FOLDER_PATH = "";
+    private static final String FOLDER_0_LVL_NAME = "folder1Lvl";
+    private static final String FOLDER_0_LVL_PATH = "/" + FOLDER_0_LVL_NAME + "/"; // /folder1Lvl/
+    private static final String FOLDER_1_LVL_NAME = "folder2Lvl";
+    private static final String FOLDER_1_LVL_PATH = FOLDER_0_LVL_PATH + FOLDER_1_LVL_NAME + "/"; // /folder1Lvl/folder2Lvl/
+    private static final String FOLDER_2_LVL_NAME = "folder3Lvl";
+    private static final String FOLDER_2_LVL_PATH = FOLDER_1_LVL_PATH + FOLDER_2_LVL_NAME + "/"; // /folder1Lvl/folder2Lvl/folder3Lvl/
+    private static final String NON_EXISTENT_FOLDER_NAME = "nonExistentFolder1";
+    private static final String NON_EXISTENT_FOLDER_PATH = "/" + NON_EXISTENT_FOLDER_NAME + "/";
+
     @BeforeAll
     public static void init() {
         testUser.setUsername("testuser");
@@ -96,33 +106,30 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
 
         assertFalse(results.iterator().hasNext(), "В MinIO не должно быть объектов с префиксом пользователя");
 
-        List<StorageItem> items = minioService.getItems(testUserPrefix, null);
+        List<StorageItem> items = minioService.getItems(testUserPrefix, ROOT_FOLDER_PATH);
 
         assertTrue(items.isEmpty(), "Список должен быть пустым, если у пользователя нет папок и файлов");
     }
 
     @Test
-    @DisplayName("Создание папки в basePath")
-    void shouldCreateFolderInBasePath() {
-        String folderPath = null;
-        String newFolderName = "newFolder";
-        minioService.createFolder(testUserPrefix, folderPath, newFolderName);
+    @DisplayName("Создание папки в корневой папке пользователя")
+    void shouldCreateFolderInRootUserPath() {
+        // Сначала создаем папку
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
-        // Проверяем, что папка создалась
-        assertTrue(folderExists(testUserPrefix + "/" + newFolderName), "Папка должна быть создана в basePath");
+        assertTrue(folderExists(testUserPrefix + FOLDER_0_LVL_PATH),
+                "Папка должна быть создана в корневой папке пользователя");
     }
 
     @Test
     @DisplayName("Проверяем, что метод getItems возвращает пустой список, если в папке нет папок и файлов")
     void shouldReturnEmptyListIfFolderHasNoFoldersAndFiles() {
-        String folderPath = null;
-        String requestedFolderName = "newFolder";
-        minioService.createFolder(testUserPrefix, folderPath, requestedFolderName);
+        // Сначала создаем папку
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
-        // Проверяем, что папка создалась
-        assertTrue(folderExists(testUserPrefix + "/" + requestedFolderName), "Папка должна быть создана в basePath");
+        assertTrue(folderExists(testUserPrefix + FOLDER_0_LVL_PATH), "Папка должна быть создана в basePath");
 
-        List<StorageItem> items = minioService.getItems(testUserPrefix, requestedFolderName);
+        List<StorageItem> items = minioService.getItems(testUserPrefix, FOLDER_0_LVL_NAME);
 
         assertTrue(items.isEmpty(), "Список должен быть пустым, если в папке нет папок и файлов");
     }
@@ -130,77 +137,57 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     @Test
     @DisplayName("Создание вложенной папки на два уровня")
     void shouldCreateNestedFolder() {
-        String folderPath = null;
-        String outerFolderName = "someFolder";
-        String outerFolderPath = "/" + outerFolderName + "/";
-        String innerFolderName = "innerFolder";
-        String innerFolderPath = outerFolderPath + innerFolderName + "/";
-
         // Сначала создаем промежуточную папку
-        minioService.createFolder(testUserPrefix, folderPath, outerFolderName);
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
         // Затем создаем вложенную папку
-        minioService.createFolder(testUserPrefix, outerFolderPath, innerFolderName);
+        minioService.createFolder(testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME);
 
-        // Проверяем, что обе папки создались
-        assertTrue(folderExists(testUserPrefix + outerFolderPath),
+        assertTrue(folderExists(testUserPrefix + FOLDER_0_LVL_PATH),
                 "Промежуточная папка должна быть создана");
-        assertTrue(folderExists(testUserPrefix + innerFolderPath),
+        assertTrue(folderExists(testUserPrefix + FOLDER_1_LVL_PATH),
                 "Вложенная папка должна быть создана");
     }
 
     @Test
     @DisplayName("Проверяем, что метод getItems возвращает вложенную папку, если в папке есть одна вложенная папка")
     void shouldReturnListWithInnerFolderIfFolderHasInnerFolder() {
-        String folderPath = null;
-        String requestedFolderName = "someFolder";
-        String requestedFolderPath = "/" + requestedFolderName + "/";
-        String innerFolderName = "innerFolder";
-        String innerFolderPath = requestedFolderPath + innerFolderName + "/";
+        // Создаем папку верхнего уровня
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
+        // Создаем вложенную папку
+        minioService.createFolder(testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME);
 
-        minioService.createFolder(testUserPrefix, folderPath, requestedFolderName);
-        minioService.createFolder(testUserPrefix, requestedFolderPath, innerFolderName);
-
-        // Проверяем, что папка создалась
-        assertTrue(folderExists(testUserPrefix + requestedFolderPath), "Папка должна быть создана в basePath");
-        assertTrue(folderExists(testUserPrefix + innerFolderPath),
+        assertTrue(folderExists(testUserPrefix + FOLDER_0_LVL_PATH), "Папка должна быть создана в basePath");
+        assertTrue(folderExists(testUserPrefix + FOLDER_1_LVL_PATH),
                 "В запрашиваемой папке должна быть создана внутренняя папка");
 
-        List<StorageItem> items = minioService.getItems(testUserPrefix, requestedFolderPath);
+        List<StorageItem> items = minioService.getItems(testUserPrefix, FOLDER_0_LVL_PATH);
 
         assertFalse(items.isEmpty(), "Список не должен быть пустым");
         assertEquals(1, items.size(), "Размер списка элементов должен быть равен 1");
-        assertEquals( innerFolderPath, items.getFirst().relativePath(), "Должны получить внутреннюю папку");
+        assertEquals(FOLDER_1_LVL_PATH, items.getFirst().relativePath(), "Должны получить внутреннюю папку");
     }
 
     @Test
     @DisplayName("Попытка создания вложенной папки в несуществующей папке")
     void shouldThrowExceptionWhenPathForNewPathDoesNotExist() {
-        String nonExistentFolderPath = "/folder1/";
-
-        // Убедимся, что промежуточная папка не существует
-        assertFalse(folderExists(testUserPrefix + nonExistentFolderPath),
+        assertFalse(folderExists(testUserPrefix + NON_EXISTENT_FOLDER_PATH),
                 "Промежуточная папка не должна существовать");
 
-        // Проверяем, что метод выбрасывает исключение
         assertThrows(FolderNotFoundException.class,
-                () -> minioService.createFolder(testUserPrefix, nonExistentFolderPath, "newFolder"),
+                () -> minioService.createFolder(testUserPrefix, NON_EXISTENT_FOLDER_PATH, FOLDER_1_LVL_NAME),
                 "Должно выбрасываться исключение при попытке создать папку в несуществующей папке");
     }
 
     @Test
     @DisplayName("Попытка создания папки, которая уже существует")
     void shouldThrowExceptionWhenFolderAlreadyExists() {
-        String folderPath = "";
-        String folderName = "existingFolder";
-        minioService.createFolder(testUserPrefix, folderPath, folderName);
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
-        // Проверяем, что папка создалась
-        assertTrue(folderExists(testUserPrefix + folderPath + "/" + folderName), "Папка должна быть создана");
+        assertTrue(folderExists(testUserPrefix + FOLDER_0_LVL_PATH), "Папка должна быть создана");
 
-        // Проверяем, что метод выбрасывает исключение при попытке создать существующую папку
         assertThrows(FolderAlreadyExistsException.class,
-                () -> minioService.createFolder(testUserPrefix, folderPath, folderName),
+                () -> minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME),
                 "Должно выбрасываться исключение при попытке создать существующую папку");
     }
 
@@ -211,7 +198,7 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
         String nullFolderName = null;
 
         assertThrows(IllegalArgumentException.class,
-                () -> minioService.createFolder(testUserPrefix, null, nullFolderName),
+                () -> minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, nullFolderName),
                 "Должно выбрасываться исключение при попытке создать папку со значением null для имени");
     }
 
@@ -219,120 +206,103 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     @DisplayName("Попытка создания папки с пустым именем")
     void shouldThrowExceptionWhenFolderNameIsEmpty() {
 
-        String emptyFolderName = "";
+        String folderWithEmptyName = "";
 
         assertThrows(IllegalArgumentException.class,
-                () -> minioService.createFolder(testUserPrefix, null, emptyFolderName),
+                () -> minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, folderWithEmptyName),
                 "Должно выбрасываться исключение при попытке создать папку с пустым именем");
     }
 
     @Test
     @DisplayName("Удаление пустой папки")
     void shouldDeleteEmptyFolder() {
-        String emptyFolderName = "emptyFolder";
         // Создаем папку
-        minioService.createFolder(testUserPrefix, "", emptyFolderName);
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
-        // Убедимся, что папка существует
-        assertTrue(folderExists(testUserPrefix + emptyFolderName));
+        assertTrue(folderExists(testUserPrefix + FOLDER_0_LVL_PATH), "Папка для удаления должна существовать");
 
-        // Удаляем папку
-        minioService.deleteFolder(testUserPrefix, "", emptyFolderName);
+        minioService.deleteFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
-        // Проверяем, что папка удалена
-        assertFalse(folderExists(testUserPrefix + emptyFolderName));
+        assertFalse(folderExists(testUserPrefix + FOLDER_0_LVL_PATH),
+                "Папка не должна существовать после удаления");
     }
 
     @Test
     @DisplayName("Удаление папки с вложенными объектами")
     void shouldDeleteFolderWithNestedObjects() {
-        String folderWithContent = "folderWithContent/";
-        String nestedFolderName = "nestedFolder";
-
         // Создаем папку и вложенные объекты
-        minioService.createFolder(testUserPrefix, "", folderWithContent);
-        minioService.createFolder(testUserPrefix, folderWithContent , nestedFolderName);
-        // Здесь можно добавить файлы, если нужно // TODO
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
+        minioService.createFolder(testUserPrefix, FOLDER_0_LVL_PATH , FOLDER_1_LVL_NAME);
+        // TODO Здесь можно добавить файлы, если нужно
 
         // Убедимся, что папка и вложенные объекты существуют
-        assertTrue(folderExists(testUserPrefix + folderWithContent));
-        assertTrue(folderExists(testUserPrefix + folderWithContent + nestedFolderName));
+        assertTrue(folderExists(testUserPrefix + FOLDER_0_LVL_PATH), "Папка для удаления должна существовать");
+        assertTrue(folderExists(testUserPrefix + FOLDER_1_LVL_PATH),
+                "Папка вложенная в папку для удаления должна существовать");
 
-        // Удаляем папку
-        minioService.deleteFolder(testUserPrefix, "", folderWithContent);
+        // Удаляем папку содержащую вложенные объекты
+        minioService.deleteFolder(testUserPrefix, "", FOLDER_0_LVL_NAME);
 
         // Проверяем, что папка и вложенные объекты удалены
-        assertFalse(folderExists(testUserPrefix + folderWithContent));
-        assertFalse(folderExists(testUserPrefix + folderWithContent + nestedFolderName));
+        assertFalse(folderExists(testUserPrefix + FOLDER_0_LVL_PATH), "Папка не должна существовать, после удаления");
+        assertFalse(folderExists(testUserPrefix + FOLDER_1_LVL_PATH),
+                "Папка вложенная в удаленную папку не должна существовать, после удаления родительской папки");
     }
 
     @Test
     @DisplayName("Удаление папки с двумя уровнями вложенности")
     void shouldDeleteFolderWithTwoLevelsOfNesting() {
-        // Имена папок
-        String folderWithContent = "folderWithContent/";
-        String nestedFolder1Name = "nestedFolder1/";
-        String nestedFolder2Name = "nestedFolder2/";
-
         // Создаем папку и вложенные объекты
-        minioService.createFolder(testUserPrefix, "", folderWithContent);
-        minioService.createFolder(testUserPrefix, folderWithContent, nestedFolder1Name);
-        minioService.createFolder(testUserPrefix, folderWithContent + nestedFolder1Name, nestedFolder2Name);
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
+        minioService.createFolder(testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME);
+        minioService.createFolder(testUserPrefix, FOLDER_1_LVL_PATH, FOLDER_2_LVL_NAME);
 
-        // Убедимся, что папки существуют
-        assertTrue(folderExists(testUserPrefix + folderWithContent));
-        assertTrue(folderExists(testUserPrefix + folderWithContent + nestedFolder1Name ));
-        assertTrue(folderExists(testUserPrefix + folderWithContent + nestedFolder1Name + nestedFolder2Name));
+        assertTrue(folderExists(testUserPrefix + FOLDER_0_LVL_PATH), "Папка для удаления должна существовать");
+        assertTrue(folderExists(testUserPrefix + FOLDER_1_LVL_PATH ),
+                "Папка вложенная в папку для удаления должна существовать");
+        assertTrue(folderExists(testUserPrefix + FOLDER_2_LVL_PATH),
+                "Папка вложенная на два уровня в папку для удаления должна существовать");
 
-        // Удаляем основную папку
-        minioService.deleteFolder(testUserPrefix, "", folderWithContent);
+        // Удаляем папку верхнего уровня
+        minioService.deleteFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
-        // Проверяем, что все папки удалены
-        assertFalse(folderExists(testUserPrefix + folderWithContent));
-        assertFalse(folderExists(testUserPrefix + folderWithContent + nestedFolder1Name));
-        assertFalse(folderExists(testUserPrefix + folderWithContent + nestedFolder1Name + nestedFolder2Name));
+        assertFalse(folderExists(testUserPrefix + FOLDER_0_LVL_PATH), "Папка не должна существовать, после удаления");
+        assertFalse(folderExists(testUserPrefix + FOLDER_1_LVL_PATH),
+                "Папка вложенная в удаленную папку не должна существовать, после удаления родительской папки");
+        assertFalse(folderExists(testUserPrefix + FOLDER_2_LVL_PATH),
+                "Папка вложенная на два уровня в удаленную папку не должна существовать, после удаления папки верхнего уровня");
     }
 
     @Test
     @DisplayName("Удаление вложенной папки и проверка существования родительской папки")
     void shouldDeleteNestedFolderButKeepParentFolder() {
-        // Имена папок
-        String folderWithContent = "folderWithContent/";
-        String nestedFolder1Name = "nestedFolder1/";
-        String nestedFolder2Name = "nestedFolder2/";
-
         // Создаем папку и вложенные объекты
-        minioService.createFolder(testUserPrefix, "", folderWithContent);
-        minioService.createFolder(testUserPrefix, folderWithContent, nestedFolder1Name);
-        minioService.createFolder(testUserPrefix, folderWithContent + nestedFolder1Name, nestedFolder2Name);
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
+        minioService.createFolder(testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME);
+        minioService.createFolder(testUserPrefix, FOLDER_1_LVL_PATH, FOLDER_2_LVL_NAME);
 
-        // Убедимся, что папки существуют
-        assertTrue(folderExists(testUserPrefix + folderWithContent));
-        assertTrue(folderExists(testUserPrefix + folderWithContent + nestedFolder1Name));
-        assertTrue(folderExists(testUserPrefix + folderWithContent + nestedFolder1Name + nestedFolder2Name));
+        assertTrue(folderExists(testUserPrefix + FOLDER_0_LVL_PATH), "Папка должна существовать");
+        assertTrue(folderExists(testUserPrefix + FOLDER_1_LVL_PATH), "Папка должна существовать");
+        assertTrue(folderExists(testUserPrefix + FOLDER_2_LVL_PATH), "Папка должна существовать");
 
-        // Удаляем вложенную папку nestedFolder1
-        minioService.deleteFolder(testUserPrefix, folderWithContent, nestedFolder1Name);
+        // Удаляем вложенную папку первого уровня
+        minioService.deleteFolder(testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME);
 
-        // Проверяем, что nestedFolder1 и nestedFolder2 удалены
-        assertFalse(folderExists(testUserPrefix + folderWithContent + nestedFolder1Name));
-        assertFalse(folderExists(testUserPrefix + folderWithContent + nestedFolder1Name +nestedFolder2Name));
+        assertFalse(folderExists(testUserPrefix + FOLDER_1_LVL_PATH), "Папка не должна существовать после удаления");
+        assertFalse(folderExists(testUserPrefix + FOLDER_2_LVL_PATH), "Папка не должна существовать после удаления родительской папки");
 
-        // Проверяем, что родительская папка folderWithContent осталась
-        assertTrue(folderExists(testUserPrefix + folderWithContent));
+        assertTrue(folderExists(testUserPrefix + FOLDER_0_LVL_PATH), "Родительская папка должна существовать после удаления вложенных");
     }
 
     @Test
     @DisplayName("Попытка удаления несуществующей папки")
     void shouldThrowExceptionWhenDeletingNonExistentFolder() {
-        String nonExistentFolder = "nonExistentFolder";
+        assertFalse(folderExists(testUserPrefix + NON_EXISTENT_FOLDER_PATH),
+                "Папка для удаления не должна существовать");
 
-        // Убедимся, что папка не существует
-        assertFalse(folderExists(testUserPrefix + nonExistentFolder));
-
-        // Проверяем, что метод выбрасывает исключение
         assertThrows(FolderNotFoundException.class,
-                () -> minioService.deleteFolder(testUserPrefix, "", nonExistentFolder));
+                () -> minioService.deleteFolder(testUserPrefix, ROOT_FOLDER_PATH, NON_EXISTENT_FOLDER_NAME),
+                "Должно выбрасываться исключение при попытке удаления несуществующей папки");
     }
 
     @Test
@@ -1529,6 +1499,8 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
             throw new RuntimeException("Failed to clean test user folder", e);
         }
     }
+
+    //TODO проверка что создание/удаление папки у одного пользователя не влияет на другого
 
 //    @Test
 //    @DisplayName("Оценка быстродействия переименования папки с 900 файлами") // TODO попробовать добавить многопоточку/асинхрон и проверить будет ли быстрее
