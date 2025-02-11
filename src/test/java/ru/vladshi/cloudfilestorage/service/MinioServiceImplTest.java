@@ -3,10 +3,7 @@ package ru.vladshi.cloudfilestorage.service;
 import io.minio.*;
 import io.minio.errors.ErrorResponseException;
 import io.minio.messages.Item;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.InputStreamResource;
@@ -15,7 +12,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.vladshi.cloudfilestorage.BaseTestcontainersForTest;
 import ru.vladshi.cloudfilestorage.dto.StorageItem;
-import ru.vladshi.cloudfilestorage.entity.User;
 import ru.vladshi.cloudfilestorage.exception.FileAlreadyExistsInStorageException;
 import ru.vladshi.cloudfilestorage.exception.FileNotFoundInStorageException;
 import ru.vladshi.cloudfilestorage.exception.FolderAlreadyExistsException;
@@ -43,7 +39,6 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     @Autowired
     private MinioClient minioClient;
 
-    private final static User testUser = new User(); // TODO нужен ли пользователь тут?
     private static String testUserPrefix;
 
     private static final String ROOT_FOLDER_PATH = "";
@@ -56,11 +51,30 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     private static final String NON_EXISTENT_FOLDER_NAME = "nonExistentFolder1";
     private static final String NON_EXISTENT_FOLDER_PATH = "/" + NON_EXISTENT_FOLDER_NAME + "/";
 
+    private static Path tempFilePath;
+    private static MultipartFile multipartFile;
+
     @BeforeAll
-    public static void init() {
-        testUser.setUsername("testuser");
-        testUser.setId(1L);
-        testUserPrefix = testUser.getUsername();
+    public static void init() throws IOException {
+        testUserPrefix = "testuser";
+
+        // Создаем временный файл и MultipartFile
+        tempFilePath = Files.createTempFile("test-", ".txt");
+        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
+
+        multipartFile = new MockMultipartFile(
+                "file",
+                "test-file.txt",
+                "text/plain",
+                Files.readAllBytes(tempFilePath)
+        );
+    }
+
+    @AfterAll
+    public static void cleanup() throws IOException {
+        if (tempFilePath != null) {
+            Files.delete(tempFilePath);
+        }
     }
 
     @BeforeEach
@@ -401,151 +415,77 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     }
 
     @Test
-    @DisplayName("Загрузка файла в MinIO")
-    void shouldUploadFileToBaseFolder() throws IOException {
-        // Создаем тестовый файл
-        String fileName = "test-file.txt";
-        Path tempFilePath = Files.createTempFile("test-", ".txt");
-        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
+    @DisplayName("Загрузка файла в корневую папку пользователя")
+    void shouldUploadFileToBaseFolder() {
+        minioService.uploadFile(testUserPrefix, ROOT_FOLDER_PATH, multipartFile);
 
-        // Создаем MultipartFile из временного файла
-        MultipartFile multipartFile = new MockMultipartFile(
-                "file",
-                fileName,
-                "text/plain",
-                Files.readAllBytes(tempFilePath)
-        );
-
-        // Загружаем файл
-        minioService.uploadFile(testUserPrefix, "", multipartFile);
-
-        // Проверяем, что файл загружен
-        String fullPath = testUserPrefix + fileName;
-        try {
-            assertTrue(fileExists(fullPath), "Файл должен быть загружен в MinIO");
-        } finally {
-            // Удаляем временный файл
-            Files.delete(tempFilePath);
-        }
+        String fullFilePath = testUserPrefix + "/" + multipartFile.getOriginalFilename();
+        assertTrue(fileExists(fullFilePath), "Файл должен быть загружен в корневую папку пользователя");
     }
 
     @Test
     @DisplayName("Загрузка файла во вложенную папку")
-    void shouldUploadFileToNestedFolder() throws IOException {
-        // Создаем тестовый файл
-        String fileName = "test-file.txt";
-        Path tempFilePath = Files.createTempFile("test-", ".txt");
-        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
+    void shouldUploadFileToNestedFolder() {
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
-        // Создаем MultipartFile из временного файла
-        MultipartFile multipartFile = new MockMultipartFile(
-                "file",
-                fileName,
-                "text/plain",
-                Files.readAllBytes(tempFilePath)
-        );
+        minioService.uploadFile(testUserPrefix, FOLDER_0_LVL_PATH, multipartFile);
 
-        // Создаем вложенную папку
-        String nestedFolder = "nested-folder/";
-        minioService.createFolder(testUserPrefix, "", nestedFolder);
-
-        // Загружаем файл во вложенную папку
-        minioService.uploadFile(testUserPrefix, nestedFolder, multipartFile);
-
-        // Проверяем, что файл загружен
-        String fullPath = testUserPrefix + nestedFolder + fileName;
-        try {
-            assertTrue(fileExists(fullPath), "Файл должен быть загружен в MinIO");
-        } finally {
-            // Удаляем временный файл
-            Files.delete(tempFilePath);
-        }
+        String fullFilePath = testUserPrefix + FOLDER_0_LVL_PATH + multipartFile.getOriginalFilename();
+        assertTrue(fileExists(fullFilePath), "Файл должен быть загружен во вложенную папку");
     }
 
     @Test
     @DisplayName("Попытка загрузки файла, который уже существует")
-    void shouldThrowExceptionWhenUploadingExistingFile() throws IOException {
-        // Создаем тестовый файл
-        String fileName = "test-file.txt";
-        Path tempFilePath = Files.createTempFile("test-", ".txt");
-        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
-
-        // Создаем MultipartFile из временного файла
-        MultipartFile multipartFile = new MockMultipartFile(
-                "file",
-                fileName,
-                "text/plain",
-                Files.readAllBytes(tempFilePath)
-        );
-
+    void shouldThrowExceptionWhenUploadingExistingFile() {
         // Загружаем файл в первый раз
-        minioService.uploadFile(testUserPrefix, "", multipartFile);
+        minioService.uploadFile(testUserPrefix, ROOT_FOLDER_PATH, multipartFile);
 
         // Проверяем, что файл загружен
-        String fullPath = testUserPrefix + fileName;
-        assertTrue(fileExists(fullPath), "Файл должен быть загружен в MinIO");
+        String fullFilePath = testUserPrefix + "/" + multipartFile.getOriginalFilename();
+        assertTrue(fileExists(fullFilePath), "Файл должен быть загружен в MinIO");
 
         // Пытаемся загрузить файл с тем же именем
         assertThrows(FileAlreadyExistsInStorageException.class,
-                () -> minioService.uploadFile(testUserPrefix, "", multipartFile),
-                "Должно выбрасываться исключение при попытке загрузить существующий файл");
-
-        // Удаляем временный файл
-        Files.delete(tempFilePath);
+                () -> minioService.uploadFile(testUserPrefix, ROOT_FOLDER_PATH, multipartFile),
+                "Должно выбрасываться исключение при попытке загрузить файл с именем как у существующего файла");
     }
 
     @Test
     @DisplayName("Попытка загрузки файла с пустым именем")
     void shouldThrowExceptionWhenUploadingFileWithEmptyName() throws IOException {
-        // Создаем тестовый файл с пустым именем
-        String fileName = "";
-        Path tempFilePath = Files.createTempFile("test-", ".txt");
-        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
-
-        // Создаем MultipartFile из временного файла
-        MultipartFile multipartFile = new MockMultipartFile(
+        // Создаем MultipartFile с пустым именем
+        MultipartFile emptyNameFile = new MockMultipartFile(
                 "file",
-                fileName,
+                "",
                 "text/plain",
-                Files.readAllBytes(tempFilePath)
+                multipartFile.getBytes()
         );
 
         // Пытаемся загрузить файл с пустым именем
         assertThrows(IllegalArgumentException.class,
-                () -> minioService.uploadFile(testUserPrefix, "", multipartFile),
+                () -> minioService.uploadFile(testUserPrefix, ROOT_FOLDER_PATH, emptyNameFile),
                 "Должно выбрасываться исключение при попытке загрузить файл с пустым именем");
-
-        // Удаляем временный файл
-        Files.delete(tempFilePath);
     }
 
     @Test
     @DisplayName("Попытка загрузки файла с некорректным именем")
     void shouldThrowExceptionWhenUploadingFileWithInvalidName() throws IOException {
-        // Создаем тестовый файл с некорректным именем
-        String fileName = "../invalid-file.txt";
-        Path tempFilePath = Files.createTempFile("test-", ".txt");
-        Files.write(tempFilePath, "Hello, MinIO!".getBytes());
-
-        // Создаем MultipartFile из временного файла
-        MultipartFile multipartFile = new MockMultipartFile(
+        // Создаем MultipartFile с некорректным именем
+        MultipartFile invalidNameFile = new MockMultipartFile(
                 "file",
-                fileName,
+                "../invalid-file.txt",
                 "text/plain",
-                Files.readAllBytes(tempFilePath)
+                multipartFile.getBytes()
         );
 
         // Пытаемся загрузить файл с некорректным именем
         Exception exception = assertThrows(RuntimeException.class,
-                () -> minioService.uploadFile(testUserPrefix, "", multipartFile),
+                () -> minioService.uploadFile(testUserPrefix, ROOT_FOLDER_PATH, invalidNameFile),
                 "Должно выбрасываться исключение при попытке загрузить файл с некорректным именем");
 
         // Проверяем, что причина исключения - IllegalArgumentException
         assertInstanceOf(IllegalArgumentException.class, exception.getCause(),
                 "Причина исключения должна быть IllegalArgumentException");
-
-        // Удаляем временный файл
-        Files.delete(tempFilePath);
     }
 
     @Test

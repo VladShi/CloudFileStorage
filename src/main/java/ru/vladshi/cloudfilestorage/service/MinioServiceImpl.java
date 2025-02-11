@@ -306,30 +306,28 @@ public class MinioServiceImpl implements MinioService {
 
     // загрузка конкретного файла на сервер по пути
     @Override
-    public void uploadFile(String basePath, String folderPath, MultipartFile file) {
+    public void uploadFile(String userPrefix, String folderPath, MultipartFile file) {
         if (file == null ||
                 file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
             throw new IllegalArgumentException("File cannot be null or nameless");
         }
 
-        // Убедимся, что folderPath заканчивается на "/", и не пустое
-        if (folderPath == null || folderPath.isBlank()) {
-            folderPath = "";
-        } else if (!folderPath.endsWith("/")) {
-            folderPath += "/";
+        String fullPrefix = userPrefix;
+        if (folderPath != null && !folderPath.isBlank()) {
+            fullPrefix += folderPath;
+        }
+        if (!fullPrefix.endsWith("/")) {
+            fullPrefix += "/";
         }
 
-        // Полный путь к родительской папке
-        String parentPath = basePath + folderPath;
-
-        // Полный путь к загружаемому файлу
-        String fullPath = parentPath + file.getOriginalFilename();
+        String fullFilePath = fullPrefix + file.getOriginalFilename();
 
         try {
             // Проверяем, существует ли файл с таким именем
-            if (fileExists(fullPath)) {
-                throw new FileAlreadyExistsInStorageException("File already exists: " + fullPath);
+            if (fileExists(fullFilePath)) {
+                throw new FileAlreadyExistsInStorageException("File already exists: " + file.getOriginalFilename());
             }
+
             File tempFile = File.createTempFile("upload-", file.getOriginalFilename());
             file.transferTo(tempFile);
 
@@ -337,7 +335,7 @@ public class MinioServiceImpl implements MinioService {
             minioClient.uploadObject(
                     UploadObjectArgs.builder()
                             .bucket(usersBucketName)
-                            .object(fullPath)
+                            .object(fullFilePath)
                             .filename(tempFile.getAbsolutePath())
                             .build()
             );
@@ -350,7 +348,7 @@ public class MinioServiceImpl implements MinioService {
         } catch (FileAlreadyExistsInStorageException e) {
             throw e; // Пробрасываем кастомное исключение
         } catch (Exception e) {
-            throw new RuntimeException("Failed to upload file: " + fullPath, e);
+            throw new RuntimeException("Failed to upload file: " + fullFilePath, e);
         }
     }
 

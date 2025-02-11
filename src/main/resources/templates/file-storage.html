@@ -38,7 +38,15 @@
                     Create Folder
                 </button>
                 <br>
-                <button class="action-button upload-file-button">Upload File</button>
+                <form id="uploadFileForm" th:action="@{/upload-file}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="path" th:value="${path}" />
+                    <input type="file" id="fileInput" name="file" required style="display: none;"
+                           onchange="uploadFile()"/>
+                    <button type="button" class="action-button upload-file-button"
+                            onclick="document.getElementById('fileInput').click()">
+                        Upload File
+                    </button>
+                </form>
                 <button class="action-button upload-folder-button">Upload Folder</button>
             </div>
 
@@ -208,6 +216,13 @@
                 });
             });
         });
+
+        <!-- Управление загрузкой файла -->
+        function uploadFile() {
+            const form = document.getElementById('uploadFileForm');
+            form.submit();
+        }
+
     </script>
 
     <script th:inline="javascript">

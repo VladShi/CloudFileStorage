@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.vladshi.cloudfilestorage.service.MinioService;
 import ru.vladshi.cloudfilestorage.util.BreadcrumbUtil;
@@ -74,6 +75,22 @@ public class FileStorageController {
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to rename folder. " + e.getMessage());
+        }
+
+        return redirectByPath(path);
+    }
+
+    @PostMapping("/upload-file")
+    public String uploadFile(@AuthenticationPrincipal UserDetails userDetails,
+                               @RequestParam(required = false) String path,
+                               @RequestParam("file") MultipartFile file,
+                               RedirectAttributes redirectAttributes) {
+        //TODO валидацию для имени файла (отсутствие слэша)
+        try {
+            minioService.uploadFile(userDetails.getUsername(), path, file);
+        } catch (Exception e) { //TODO показывать message только для кастомных исключений
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage", "Failed to upload file: " + e.getMessage());
         }
 
         return redirectByPath(path);
