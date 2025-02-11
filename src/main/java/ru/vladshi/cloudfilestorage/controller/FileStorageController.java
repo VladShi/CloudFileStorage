@@ -40,7 +40,7 @@ public class FileStorageController {
                                @RequestParam String newFolderName,
                                RedirectAttributes redirectAttributes) {
         try {
-            //TODO валидацию для newFolderName
+            //TODO валидацию для newFolderName (отсутствие слэша)
             minioService.createFolder(userDetails.getUsername(), path, newFolderName);
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute("errorMessage", "Failed to create folder. " + e.getMessage());
@@ -70,6 +70,7 @@ public class FileStorageController {
                                @RequestParam String folderToRename,
                                @RequestParam String newFolderName,
                                RedirectAttributes redirectAttributes) {
+        //TODO валидацию для newFolderName (отсутствие слэша)
         try {
             minioService.renameFolder(userDetails.getUsername(), path, folderToRename, newFolderName);
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
@@ -91,6 +92,21 @@ public class FileStorageController {
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to upload file: " + e.getMessage());
+        }
+
+        return redirectByPath(path);
+    }
+
+    @PostMapping("/delete-file")
+    public String deleteFile(@AuthenticationPrincipal UserDetails userDetails,
+                               @RequestParam(required = false) String path,
+                               @RequestParam String fileToDelete,
+                               RedirectAttributes redirectAttributes) {
+        try {
+            minioService.deleteFile(userDetails.getUsername(), path, fileToDelete);
+        } catch (Exception e) { //TODO показывать message только для кастомных исключений
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage", "Failed to delete folder. " + e.getMessage());
         }
 
         return redirectByPath(path);

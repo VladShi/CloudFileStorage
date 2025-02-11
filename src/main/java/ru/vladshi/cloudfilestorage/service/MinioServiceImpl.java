@@ -220,7 +220,7 @@ public class MinioServiceImpl implements MinioService {
     public void renameFolder(String userPrefix, String folderPath, String oldFolderName, String newFolderName) {
         //TODO вынести общий метод. Общий метод будем вызывать дважды и передавать сначала старое потом новое название
         if (oldFolderName == null || oldFolderName.isBlank() || newFolderName == null || newFolderName.isBlank()) {
-            throw new IllegalArgumentException("Folder relativePath cannot be null or empty");
+            throw new IllegalArgumentException("Folder name cannot be null or empty");
         }
 
         String fullPrefix = userPrefix;
@@ -312,6 +312,8 @@ public class MinioServiceImpl implements MinioService {
             throw new IllegalArgumentException("File cannot be null or nameless");
         }
 
+        String fileName = file.getOriginalFilename();
+
         String fullPrefix = userPrefix;
         if (folderPath != null && !folderPath.isBlank()) {
             fullPrefix += folderPath;
@@ -320,12 +322,12 @@ public class MinioServiceImpl implements MinioService {
             fullPrefix += "/";
         }
 
-        String fullFilePath = fullPrefix + file.getOriginalFilename();
+        String fullFilePath = fullPrefix + fileName;
 
         try {
             // Проверяем, существует ли файл с таким именем
             if (fileExists(fullFilePath)) {
-                throw new FileAlreadyExistsInStorageException("File already exists: " + file.getOriginalFilename());
+                throw new FileAlreadyExistsInStorageException("File already exists: " + fileName);
             }
 
             File tempFile = File.createTempFile("upload-", file.getOriginalFilename());
@@ -371,34 +373,33 @@ public class MinioServiceImpl implements MinioService {
 
     // удаление конкретного файла по пути
     @Override
-    public void deleteFile(String basePath, String folderPath, String fileName) {
+    public void deleteFile(String userPrefix, String folderPath, String fileName) {
         if (fileName == null || fileName.isBlank()) {
-            throw new IllegalArgumentException("File relativePath cannot be null or empty");
+            throw new IllegalArgumentException("File name cannot be null or empty");
         }
 
-        // Убедимся, что folderPath заканчивается на "/", и не пустое
-        if (folderPath == null || folderPath.isBlank()) {
-            folderPath = "";
-        } else if (!folderPath.endsWith("/")) {
-            folderPath += "/";
+        String fullPrefix = userPrefix;
+        if (folderPath != null && !folderPath.isBlank()) {
+            fullPrefix += folderPath;
+        }
+        if (!fullPrefix.endsWith("/")) {
+            fullPrefix += "/";
         }
 
-        // Полный путь к удаляемому файлу
-        String fullPath = basePath + folderPath + fileName;
+        String fullFilePath = fullPrefix + fileName;
 
         try {
-            // Проверяем, существует ли удаляемый файл
-            if (!fileExists(fullPath)) {
-                throw new FileNotFoundInStorageException("File not found: " + fullPath);
+            if (!fileExists(fullFilePath)) {
+                throw new FileNotFoundInStorageException("File not found: " + fileName);
             }
 
             minioClient.removeObject(
-                    RemoveObjectArgs.builder().bucket(usersBucketName).object(fullPath).build());
+                    RemoveObjectArgs.builder().bucket(usersBucketName).object(fullFilePath).build());
 
         } catch (FileNotFoundInStorageException e) {
             throw e; // Пробрасываем кастомное исключение
         } catch (Exception e) {
-            throw new RuntimeException("Failed to delete file: " + fullPath, e);
+            throw new RuntimeException("Failed to delete file: " + fullFilePath, e);
         }
     }
 
