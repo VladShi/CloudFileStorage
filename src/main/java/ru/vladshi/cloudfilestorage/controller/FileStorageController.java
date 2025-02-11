@@ -41,12 +41,11 @@ public class FileStorageController {
         try {
             //TODO валидацию для newFolderName
             minioService.createFolder(userDetails.getUsername(), path, newFolderName);
-            redirectAttributes.addFlashAttribute("successMessage", "Folder created successfully!");
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute("errorMessage", "Failed to create folder. " + e.getMessage());
         }
 
-        return "redirect:/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8);
+        return redirectByPath(path);
     }
 
     @PostMapping("/delete-folder")
@@ -56,12 +55,34 @@ public class FileStorageController {
                                RedirectAttributes redirectAttributes) {
         try {
             minioService.deleteFolder(userDetails.getUsername(), path, folderToDelete);
-            redirectAttributes.addFlashAttribute("successMessage", "Folder deleted successfully!");
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to delete folder. " + e.getMessage());
         }
 
-        return "redirect:/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8);
+        return redirectByPath(path);
+    }
+
+    @PostMapping("/rename-folder")
+    public String renameFolder(@AuthenticationPrincipal UserDetails userDetails,
+                               @RequestParam(required = false) String path,
+                               @RequestParam String folderToRename,
+                               @RequestParam String newFolderName,
+                               RedirectAttributes redirectAttributes) {
+        try {
+            minioService.renameFolder(userDetails.getUsername(), path, folderToRename, newFolderName);
+        } catch (Exception e) { //TODO показывать message только для кастомных исключений
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage", "Failed to rename folder. " + e.getMessage());
+        }
+
+        return redirectByPath(path);
+    }
+
+    private static String redirectByPath(String path) {
+        if (path != null && !path.isBlank()) {
+            return "redirect:/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8);
+        }
+        return "redirect:/";
     }
 }

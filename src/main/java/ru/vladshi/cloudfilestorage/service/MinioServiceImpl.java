@@ -112,11 +112,11 @@ public class MinioServiceImpl implements MinioService {
 
         try {
             if (!fullPrefix.equals(userPrefix + "/") && !folderExists(fullPrefix)) {
-                throw new FolderNotFoundException("Folder does not exist: " + fullPrefix);
+                throw new FolderNotFoundException("Folder does not exist: " + folderPath + folderName + "/");
             }
 
             if (folderExists(fullNewFolderPath)) {
-                throw new FolderAlreadyExistsException("Folder already exists: " + fullNewFolderPath);
+                throw new FolderAlreadyExistsException("Folder already exists: " + folderName);
             }
 
             minioClient.putObject(
@@ -172,7 +172,7 @@ public class MinioServiceImpl implements MinioService {
         try {
             // Проверяем, существует ли удаляемая папка
             if (!folderExists(folderToDeleteFullPath)) {
-                throw new FolderNotFoundException("Folder not found: " + folderToDeleteFullPath);
+                throw new FolderNotFoundException("Folder not found: " + folderPath + folderName + "/");
             }
 
             // Получаем список всех объектов в папке (включая вложенные)
@@ -203,54 +203,47 @@ public class MinioServiceImpl implements MinioService {
                 // Проверяем ошибки
                 for (Result<DeleteError> result : deletingResults) {
                     DeleteError error = result.get();
-                    throw new ObjectDeletionException("Failed to delete object: " + error.objectName());
+                    throw new ObjectDeletionException(
+                            "Failed to delete object: " + error.objectName().substring(userPrefix.length()));
                 }
             }
 
         } catch (FolderNotFoundException | ObjectDeletionException e) {
             throw e; // Пробрасываем кастомное исключение
         } catch (Exception e) {
-            throw new RuntimeException("Failed to delete folder: " + folderToDeleteFullPath, e);
+            throw new RuntimeException("Failed to delete folder: " + folderPath + folderName + "/", e);
         }
     }
 
-    // переименование папки с изменением пути ко всем вложенным(не забыть проверки на существование, что бы не затирать существующие)
+    // переименование папки с изменением пути ко всем вложенным
     @Override
-    public void renameFolder(String basePath, String folderPath, String oldFolderName, String newFolderName) {
-        if (oldFolderName == null || oldFolderName.isBlank()) {
+    public void renameFolder(String userPrefix, String folderPath, String oldFolderName, String newFolderName) {
+        //TODO вынести общий метод. Общий метод будем вызывать дважды и передавать сначала старое потом новое название
+        if (oldFolderName == null || oldFolderName.isBlank() || newFolderName == null || newFolderName.isBlank()) {
             throw new IllegalArgumentException("Folder relativePath cannot be null or empty");
-        } else if (!oldFolderName.endsWith("/")) {
-            oldFolderName += "/";
         }
 
-        if (newFolderName == null || newFolderName.isBlank()) {
-            throw new IllegalArgumentException("Folder relativePath cannot be null or empty");
-        } else if (!newFolderName.endsWith("/")) {
-            newFolderName += "/";
+        String fullPrefix = userPrefix;
+        if (folderPath != null && !folderPath.isBlank()) {
+            fullPrefix += folderPath;
+        }
+        if (!fullPrefix.endsWith("/")) {
+            fullPrefix += "/";
         }
 
-        // Убедимся, что folderPath заканчивается на "/", и не пустое
-        if (folderPath == null || folderPath.isBlank()) {
-            folderPath = "";
-        } else if (!folderPath.endsWith("/")) {
-            folderPath += "/";
-        }
+        String fullOldPath = fullPrefix + oldFolderName + "/";
 
-        // Полный путь к удаляемой старой папке
-        String fullOldPath = basePath + folderPath + oldFolderName;
-
-        // Полный путь к новой папке
-        String fullNewPath = basePath + folderPath + newFolderName;
+        String fullNewPath = fullPrefix + newFolderName + "/";
 
         try {
             // Проверяем, существует ли удаляемая папка
             if (!folderExists(fullOldPath)) {
-                throw new FolderNotFoundException("Folder not found: " + fullOldPath);
+                throw new FolderNotFoundException("Folder not found: " + oldFolderName);
             }
 
             // Проверяем, что не занято имя папки для переименования
             if (folderExists(fullNewPath)) {
-                throw new FolderAlreadyExistsException("Folder already exist: " + fullNewPath);
+                throw new FolderAlreadyExistsException("Folder already exist: " + newFolderName);
             }
 
             // Получаем список всех объектов с префиксом старой папки
@@ -272,7 +265,8 @@ public class MinioServiceImpl implements MinioService {
                 String oldObjectName = item.objectName();
 
                 // Формируем новое имя объекта
-                String newObjectName = oldObjectName.replaceFirst(fullOldPath, fullNewPath);
+//                String newObjectName = oldObjectName.replaceFirst(fullOldPath, fullNewPath);
+                String newObjectName = fullNewPath + oldObjectName.substring(fullOldPath.length());
 
                 // Копируем объект с новым именем
                 minioClient.copyObject(
@@ -298,14 +292,15 @@ public class MinioServiceImpl implements MinioService {
                 // Проверяем ошибки
                 for (Result<DeleteError> result : deletingResults) {
                     DeleteError error = result.get();
-                    throw new ObjectDeletionException("Failed to delete object: " + error.objectName());
+                    throw new ObjectDeletionException(
+                            "Failed to delete object: " + error.objectName().substring(userPrefix.length()));
                 }
             }
 
         } catch (FolderNotFoundException | ObjectDeletionException | FolderAlreadyExistsException e) {
             throw e; // Пробрасываем кастомное исключение
         } catch (Exception e) {
-            throw new RuntimeException("Failed to rename folder: " + fullOldPath, e);
+            throw new RuntimeException("Failed to rename folder: " + folderPath + oldFolderName + "/", e);
         }
     }
 

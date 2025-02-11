@@ -21,6 +21,7 @@
         </div>
     </header>
     <div class="content">
+
         <!-- Строка ввода поиска -->
         <form action="/search" method="get" class="search-bar">
             <input type="text" id="search-query" placeholder="Search..." th:value="${searchQuery}"  maxlength="100" />
@@ -30,20 +31,20 @@
 
         <!-- Контейнер для кнопок и хлебных крошек+таблицы -->
         <div class="main-container">
+
             <!-- Контейнер для кнопок -->
             <div class="action-buttons">
-                <form th:action="@{/create-folder}" method="post" class="action-form-create-folder">
-                    <input type="hidden" name="path" th:value="${path}" />
-                    <input type="text" name="newFolderName" placeholder="New folder name" required />
-                    <br>
-                    <button type="submit" class="action-button create-folder-button">Create Folder</button>
-                </form>
+                <button class="action-button create-folder-button" onclick="openCreateFolderModal()">
+                    Create Folder
+                </button>
                 <br>
                 <button class="action-button upload-file-button">Upload File</button>
                 <button class="action-button upload-folder-button">Upload Folder</button>
             </div>
+
             <!-- Контейнер для хлебных крошек и таблицы -->
             <div class="breadcrumbs-table-container">
+
                 <!-- Хлебные крошки -->
                 <div class="breadcrumbs">
                     <a href="/" class="home-crumb">🏠</a>
@@ -53,19 +54,7 @@
                         <span th:if="${iterStat.last}" th:text="${crumb.name()}" style="font-weight: bold"></span>
                     </span>
                 </div>
-                <!-- Сообщения об успешном создании и ошибках -->
-                <div th:if="${successMessage}" class="alert alert-success" role="alert">
-                    <span th:text="${successMessage}"></span>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
-                    <span th:text="${errorMessage}"></span>
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
+
                 <!-- Таблица файлов и папок -->
                 <table class="file-table">
                     <thead>
@@ -87,7 +76,8 @@
                                 <button class="download-button" title="Download">
                                     <span class="icon-download">⬇️</span>
                                 </button>
-                                <button class="rename-button" title="Rename">
+                                <button class="rename-button" title="Rename"
+                                        th:attr="onclick='openRenameFolderModal(\'' + ${item.getName()} + '\')'">
                                     <span class="icon-rename">📝</span>
                                 </button>
                                 <form th:action="@{/delete-folder}" method="post">
@@ -126,8 +116,86 @@
         </div>
     </div>
 
+    <!-- Модальное окно для создания папки -->
+    <div id="createFolderModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateFolderModal()">&times;</span>
+            <form th:action="@{/create-folder}" method="post">
+                <input type="hidden" name="path" th:value="${path}" />
+                <input type="text" name="newFolderName" placeholder="New folder name" required />
+                <button type="submit" class="action-button">Create</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для переименования папки -->
+    <div id="renameFolderModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeRenameFolderModal()">&times;</span>
+            <form th:action="@{/rename-folder}" method="post">
+                <input type="hidden" name="path" th:value="${path}" />
+                <input type="hidden" id="folderToRename" name="folderToRename" />
+                <input type="text" id="newFolderName" name="newFolderName" placeholder="New folder name" required />
+                <button type="submit" class="action-button">Rename</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для отображения ошибки -->
+    <div id="errorModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeErrorModal()">&times;</span>
+            <div id="errorMessage" class="alert alert-danger" role="alert"></div>
+        </div>
+    </div>
+
     <!-- JavaScript для закрытия всплывающих окон -->
     <script>
+        function openCreateFolderModal() {
+            document.getElementById('createFolderModal').style.display = 'block';
+        }
+
+        function closeCreateFolderModal() {
+            document.getElementById('createFolderModal').style.display = 'none';
+        }
+
+        function openRenameFolderModal(folderName) {
+            document.getElementById('folderToRename').value = folderName;
+            document.getElementById('renameFolderModal').style.display = 'block';
+        }
+
+        function closeRenameFolderModal() {
+            document.getElementById('renameFolderModal').style.display = 'none';
+        }
+
+        // Открытие модального окна с ошибкой
+        function openErrorModal(errorMessage) {
+            document.getElementById('errorMessage').textContent = errorMessage;
+            document.getElementById('errorModal').style.display = 'block';
+        }
+
+        // Закрытие модального окна с ошибкой
+        function closeErrorModal() {
+            document.getElementById('errorModal').style.display = 'none';
+        }
+
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            const createModal = document.getElementById('createFolderModal');
+            const renameModal = document.getElementById('renameFolderModal');
+            const errorModal = document.getElementById('errorModal');
+            if (event.target === createModal) {
+                createModal.style.display = 'none';
+            }
+            if (event.target === renameModal) {
+                renameModal.style.display = 'none';
+            }
+            if (event.target === errorModal) {
+                closeErrorModal();
+            }
+        }
+
+        // Закрытие сообщения об успехе / ошибке
         document.addEventListener('DOMContentLoaded', function() {
             const closeButtons = document.querySelectorAll('.alert .close');
             closeButtons.forEach(button => {
@@ -140,6 +208,17 @@
                 });
             });
         });
+    </script>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        document.addEventListener('DOMContentLoaded', function() {
+            const errorMessage = /*[[${errorMessage}]]*/ null;
+            if (errorMessage) {
+                openErrorModal(errorMessage);
+            }
+        });
+        /*]]>*/
     </script>
 
 </body>

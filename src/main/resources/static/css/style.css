@@ -8,14 +8,15 @@
 /* Общие стили для темной темы */
 body {
     background-color: #333;
-    color: #fff;
+    color: #eaeaea;
     font-family: Arial, sans-serif;
+    letter-spacing: 0.02vmax;
 }
 
 /* Стили для форм */
 input, textarea, select {
     background-color: #444;
-    color: #fff;
+    color: #e1e1e1;
     border: 1px solid #555;
     padding: 10px;
     margin: 5px 0;
@@ -25,12 +26,13 @@ input, textarea, select {
 /* Стили для кнопок */
 button, .btn {
     background-color: #555;
-    color: #fff;
+    color: #e4e4e4;
     border: none;
     padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
     text-decoration: none;
+    letter-spacing: 0.01vmax;
 }
 
 button:hover, .btn:hover {
@@ -113,8 +115,7 @@ a:hover {
 .search-bar {
     display: flex;
     align-items: center;
-    margin-bottom: 20px;
-    padding-left: 200px;
+    padding-left: 190px;
 }
 
 .search-bar input {
@@ -153,35 +154,30 @@ button.clear-button {
     border-radius: 4px;
     cursor: pointer;
     text-decoration: none;
-    width: 180px; /* Фиксированная ширина для всех кнопок */
-    text-align: left; /* Выравнивание текста по левому краю */
+    width: 170px; /* Фиксированная ширина для всех кнопок */
+    text-align: center; /* Выравнивание текста по левому краю */
 }
 
 .action-button:hover {
     background-color: #666;
 }
 
-/* Поле ввода для создания папки */
-.action-form-create-folder input {
-    width: 180px;
-}
-
 /* Иконки для кнопок */
 .create-folder-button::before {
     content: '📁'; /* Иконка папки */
-    margin-right: 10px;
+    /*margin-right: 10px;*/
     font-size: 16px;
 }
 
 .upload-file-button::before {
     content: '📂'; /* Иконка загрузки файла */
-    margin-right: 10px;
+    /*margin-right: 10px;*/
     font-size: 16px;
 }
 
 .upload-folder-button::before {
     content: '🗂️'; /* Иконка загрузки папки */
-    margin-right: 10px;
+    /*margin-right: 10px;*/
     font-size: 16px;
 }
 
@@ -203,9 +199,9 @@ button.clear-button {
 }
 
 .breadcrumbs a {
-    color: #98b4f4;
+    color: #c3ced1;
     text-decoration: none;
-    margin-right: 5px;
+    margin-right: 0.2vmax;
 }
 
 .breadcrumbs a:hover {
@@ -214,12 +210,12 @@ button.clear-button {
 }
 
 .breadcrumb-separator {
-    margin: 0 5px; /* Небольшой пробел между слешами и именами папок */
+    margin: 0 0.0vmax; /* Небольшой пробел между слешами и именами папок */
 }
 
 /* Таблица файлов и папок */
 .file-table {
-    width: 100%;
+    max-width: 68vmax;
     border-collapse: collapse;
     margin-bottom: 20px;
     border-radius: 5px; /* Скругление углов таблицы */
@@ -239,6 +235,10 @@ button.clear-button {
     border-bottom: 1px solid #444; /* Добавление разделителя между заголовками и строками */
 }
 
+.file-table a {
+    color: #eaeaea;
+}
+
 /* Стили для первой строки таблицы */
 .file-table tbody tr:first-child td {
     border-top: 1px solid #444; /* Добавление верхней границы для первой строки */
@@ -251,7 +251,7 @@ button.clear-button {
 
 .file-table .size-column {
     text-align: right;
-    width: 150px; /* Фиксированная ширина для столбца Size */
+    width: 140px; /* Фиксированная ширина для столбца Size */
 }
 
 .file-table .actions-column {
@@ -294,34 +294,79 @@ button.clear-button {
 /* Всплывающие окна */
 .alert {
     padding: 10px 20px;
-    margin-bottom: 10px;
     border-radius: 4px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.alert-success {
-    background-color: #bbd8c1;
-    color: #155724;
-    border: 1px solid #a9d1b1;
+    white-space: normal; /* Разрешаем перенос текста */
 }
 
 .alert-danger {
-    background-color: #e8c7ca;
-    color: #721c24;
-    border: 1px solid #cc9da2;
-}
-
-.alert .close {
-    background: none;
-    border: none;
-    color: inherit;
+    background-color: #682127; /* Темно-красный фон */
+    color: #dfdfdf; /* Белый текст */
+    border: 1px solid #8b0000; /* Темная граница */
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 22px;
     font-size: 16px;
-    cursor: pointer;
-    padding: 0;
+    line-height: 1.3;
+    word-wrap: break-word; /* Перенос длинных слов */
+    letter-spacing: 0.05vmax; /* Увеличение расстояния между буквами */
 }
 
-.alert .close:hover {
-    opacity: 0.7;
+/* Модальные окна */
+.modal {
+    display: none; /* Скрыто по умолчанию */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Полупрозрачный черный фон */
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: #3e3e3e; /* Темный фон */
+    margin: 10% auto; /* Отступ сверху и по центру */
+    padding: 20px;
+    border: 1px solid #505050;
+    border-radius: 8px;
+    width: 44%; /* Ширина модального окна */
+    max-width: 600px; /* Максимальная ширина */
+    position: relative;
+    color: #eaeaea; /* Белый текст */
+}
+
+.modal .close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    cursor: pointer;
+}
+
+.modal .close:hover,
+.modal .close:focus {
+    color: #f8f8f8;
+    text-decoration: none;
+}
+
+.modal form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal form input {
+    width: 100%;
+}
+
+.modal form button {
+    align-self: center;
+    width: 50%;
 }

@@ -47,12 +47,12 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     private static String testUserPrefix;
 
     private static final String ROOT_FOLDER_PATH = "";
-    private static final String FOLDER_0_LVL_NAME = "folder1Lvl";
+    private static final String FOLDER_0_LVL_NAME = "folder_0_Lvl";
     private static final String FOLDER_0_LVL_PATH = "/" + FOLDER_0_LVL_NAME + "/"; // /folder1Lvl/
-    private static final String FOLDER_1_LVL_NAME = "folder2Lvl";
-    private static final String FOLDER_1_LVL_PATH = FOLDER_0_LVL_PATH + FOLDER_1_LVL_NAME + "/"; // /folder1Lvl/folder2Lvl/
-    private static final String FOLDER_2_LVL_NAME = "folder3Lvl";
-    private static final String FOLDER_2_LVL_PATH = FOLDER_1_LVL_PATH + FOLDER_2_LVL_NAME + "/"; // /folder1Lvl/folder2Lvl/folder3Lvl/
+    private static final String FOLDER_1_LVL_NAME = "folder_1_Lvl";
+    private static final String FOLDER_1_LVL_PATH = FOLDER_0_LVL_PATH + FOLDER_1_LVL_NAME + "/"; // /folder0Lvl/folder1Lvl/
+    private static final String FOLDER_2_LVL_NAME = "folder_2_Lvl";
+    private static final String FOLDER_2_LVL_PATH = FOLDER_1_LVL_PATH + FOLDER_2_LVL_NAME + "/"; // /folder0Lvl/folder1Lvl/folder2Lvl/
     private static final String NON_EXISTENT_FOLDER_NAME = "nonExistentFolder1";
     private static final String NON_EXISTENT_FOLDER_PATH = "/" + NON_EXISTENT_FOLDER_NAME + "/";
 
@@ -306,102 +306,98 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     }
 
     @Test
-    @DisplayName("Переименование папки с использованием пустого пути")
+    @DisplayName("Переименование пустой папки в корневой папке пользователя")
     void shouldRenameFolderWithEmptyPath() {
-        String oldFolderName = "folder1/";
-        String renamedFolderName = "renamedFolder/";
+        String renamedFolderName = "renamedFolder";
+        String renamedFolderPath = "/" + renamedFolderName + "/";
 
-        // Создаем папку для переименования
-        minioService.createFolder(testUserPrefix, "", oldFolderName);
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
-        // Переименовываем папку
-        minioService.renameFolder(testUserPrefix, "", oldFolderName, renamedFolderName);
+        minioService.renameFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME, renamedFolderName);
 
-        // Проверяем, что старая папка удалена
-        assertFalse(folderExists(testUserPrefix + oldFolderName));
+        assertFalse(folderExists(testUserPrefix + FOLDER_0_LVL_PATH),
+                "Папка не должна существовать после её переименования");
 
-        // Проверяем, что новая папка создана
-        assertTrue(folderExists(testUserPrefix + renamedFolderName));
+        assertTrue(folderExists(testUserPrefix + renamedFolderPath),
+                "Папка должна существовать с новым именем, после переименования");
     }
 
     @Test
-    @DisplayName("Переименование пустой папки")
+    @DisplayName("Переименование пустой вложенной папки")
     void shouldRenameEmptyFolder() {
-        String parentFolder = "parentFolder/";
-        String oldFolderName = "emptyFolder/";
-        String renamedFolderName = "renamedEmptyFolder/";
+        String renamedFolderName = "renamedEmptyFolder";
+        String renamedFolderPath = FOLDER_0_LVL_PATH + renamedFolderName + "/";
 
-        // Создаем родительскую папку и пустую папку
-        minioService.createFolder(testUserPrefix, "", parentFolder);
-        minioService.createFolder(testUserPrefix, parentFolder, oldFolderName);
+        // Создаем родительскую папку и пустую вложенную папку
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
+        minioService.createFolder(testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME);
 
-        // Переименовываем папку
-        minioService.renameFolder(testUserPrefix, parentFolder, oldFolderName, renamedFolderName);
+        minioService.renameFolder(testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME, renamedFolderName);
 
-        // Проверяем, что старая папка удалена
-        assertFalse(folderExists(testUserPrefix + parentFolder + oldFolderName));
+        assertFalse(folderExists(testUserPrefix + FOLDER_1_LVL_PATH),
+                "Папка не должна существовать после её переименования");
 
-        // Проверяем, что новая папка создана
-        assertTrue(folderExists(testUserPrefix + parentFolder + renamedFolderName));
+        assertTrue(folderExists(testUserPrefix + renamedFolderPath),
+                "Папка должна существовать с новым именем, после переименования");
     }
 
     @Test
     @DisplayName("Попытка переименования несуществующей папки")
     void shouldThrowExceptionWhenRenamingNonExistentFolder() {
-        String parentFolder = "parentFolder/";
-        String nonExistentFolder = "nonExistentFolder/";
-        String renamedFolderName = "renamedFolder/";
 
-        // Создаем родительскую папку
-        minioService.createFolder(testUserPrefix, "", parentFolder);
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
-        // Проверяем, что метод выбрасывает исключение
         assertThrows(FolderNotFoundException.class,
-                () -> minioService.renameFolder(testUserPrefix, parentFolder, nonExistentFolder, renamedFolderName));
+                () -> minioService.renameFolder(
+                        testUserPrefix, FOLDER_0_LVL_PATH, NON_EXISTENT_FOLDER_NAME, "renamedFolderName"),
+                "Должно выбрасываться исключение при попытке переименования несуществующей папки");
     }
 
     @Test
     @DisplayName("Попытка переименования папки в уже существующую папку")
     void shouldThrowExceptionWhenRenamingToExistingFolder() {
-        String parentFolder = "parentFolder/";
-        String oldFolderName = "folder1/";
-        String existingFolderName = "existingFolder/";
+        String existingFolderName = "existingFolder";
 
         // Создаем родительскую папку и две вложенные папки
-        minioService.createFolder(testUserPrefix, "", parentFolder);
-        minioService.createFolder(testUserPrefix, parentFolder, oldFolderName);
-        minioService.createFolder(testUserPrefix, parentFolder, existingFolderName);
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
+        minioService.createFolder(testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME);
+        minioService.createFolder(testUserPrefix, FOLDER_0_LVL_PATH, existingFolderName);
 
-        // Проверяем, что метод выбрасывает исключение
         assertThrows(FolderAlreadyExistsException.class,
-                () -> minioService.renameFolder(testUserPrefix, parentFolder, oldFolderName, existingFolderName));
+                () -> minioService.renameFolder(
+                        testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME, existingFolderName),
+                "Должно выбрасываться исключение" +
+                        " при попытке переименования с названием уже существующей папки");
     }
 
     @Test
-    @DisplayName("Переименование папки с вложенными папками")
+    @DisplayName("Переименование папки с вложенными объектами")
     void shouldRenameFolderWithNestedFolders() {
-        String folderWithContent = "folderWithContent/";
-        String oldFolderName = "folder1/";
-        String renamedFolderName = "renamed-folder/";
+        String renamedFolderName = "renamed-folder";
+        String renamedFolderPath = FOLDER_0_LVL_PATH + renamedFolderName + "/";
 
         // Создаем папку и вложенные объекты
-        minioService.createFolder(testUserPrefix, "", folderWithContent);
-        minioService.createFolder(testUserPrefix, folderWithContent, oldFolderName);
-        minioService.createFolder(testUserPrefix, folderWithContent + oldFolderName, "nestedFolder");
+        minioService.createFolder(testUserPrefix, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
+        minioService.createFolder(testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME);
+        minioService.createFolder(testUserPrefix, FOLDER_1_LVL_PATH, FOLDER_2_LVL_NAME);
         // minioService.uploadFile(); // TODO добавить файлы
 
-        // Переименовываем папку
-        minioService.renameFolder(testUserPrefix, folderWithContent, oldFolderName, renamedFolderName);
+        // Переименовываем папку с одним уровнем вложенности
+        minioService.renameFolder(testUserPrefix, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME, renamedFolderName);
 
         // Проверяем, что старые объекты удалены
-        assertFalse(folderExists(testUserPrefix + folderWithContent + oldFolderName));
-        assertFalse(folderExists(testUserPrefix + folderWithContent + oldFolderName + "nestedFolder/"));
-        // assertFalse(fileExists();
+        assertFalse(folderExists(testUserPrefix + FOLDER_1_LVL_PATH),
+                "Папка не должна существовать после её переименовании");
+        assertFalse(folderExists(testUserPrefix + FOLDER_2_LVL_PATH),
+                "После переименования родительской папки " +
+                        "вложенная папка не должна существовать по первоначальному пути");
+        // assertFalse(fileExists());
 
-        // Проверяем, что новые объекты созданы
-        assertTrue(folderExists(testUserPrefix + folderWithContent + renamedFolderName));
-        assertTrue(folderExists(testUserPrefix + folderWithContent + renamedFolderName + "nestedFolder/"));
-        // assertTrue(fileExists();
+        assertTrue(folderExists(testUserPrefix + renamedFolderPath),
+                "Папка должна существовать с новым именем, после переименования");
+        assertTrue(folderExists(testUserPrefix + renamedFolderPath + FOLDER_2_LVL_NAME + "/"),
+                "После переименования родительской папки вложенная папка должна существовать по новому пути");
+        // assertTrue(fileExists());
     }
 
     @Test
