@@ -47,9 +47,16 @@ public class AuthController {
         return "redirect:/";
     }
 
+//    @GetMapping("/login")
+//    public String showLoginForm(@ModelAttribute("userDto") UserDto userDto) {
+//        return "login";
+//    } //TODO не забыть убрать авто-логин после окончания разработки
     @GetMapping("/login")
-    public String showLoginForm(@ModelAttribute("userDto") UserDto userDto) {
-        return "login";
+    public String showLoginForm(HttpServletRequest request, @ModelAttribute("userDto") UserDto userDto) {
+        userDto.setUsername("admin");
+        userDto.setPassword("admin");
+        autoLogin(request, userDto);
+        return "redirect:/";
     }
 
     private void saveUserWithErrorChecking(User user, BindingResult bindingResult) {

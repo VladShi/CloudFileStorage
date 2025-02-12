@@ -47,7 +47,15 @@
                         Upload File
                     </button>
                 </form>
-                <button class="action-button upload-folder-button">Upload Folder</button>
+                <form id="uploadFolderForm" th:action="@{/upload-folder}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="path" th:value="${path}" />
+                    <input type="file" id="folderInput" name="files" webkitdirectory directory style="display: none;"
+                           onchange="uploadFolder()"/>
+                    <button type="button" class="action-button upload-folder-button"
+                            onclick="document.getElementById('folderInput').click()">
+                        Upload Folder
+                    </button>
+                </form>
             </div>
 
             <!-- Контейнер для хлебных крошек и таблицы -->
@@ -306,6 +314,26 @@
         <!-- Управление загрузкой файла -->
         function uploadFile() {
             const form = document.getElementById('uploadFileForm');
+            form.submit();
+        }
+
+        <!-- Управление загрузкой папки -->
+        function uploadFolder() {
+            const form = document.getElementById('uploadFolderForm');
+            const pathInput = form.querySelector('input[name="path"]');
+            const folderInput = form.querySelector('input[name="files"]');
+
+            // Получаем название выбранной папки
+            const folderName = folderInput.files[0]?.webkitRelativePath.split('/')[0];
+
+            // Добавляем название папки как скрытый параметр
+            const folderNameInput = document.createElement('input');
+            folderNameInput.type = 'hidden';
+            folderNameInput.name = 'folderName';
+            folderNameInput.value = folderName;
+            form.appendChild(folderNameInput);
+
+            // Отправляем форму
             form.submit();
         }
 

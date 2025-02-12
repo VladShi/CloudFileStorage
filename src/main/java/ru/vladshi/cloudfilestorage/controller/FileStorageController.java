@@ -129,6 +129,22 @@ public class FileStorageController {
         return redirectByPath(path);
     }
 
+    @PostMapping("/upload-folder")
+    public String uploadFolder(@AuthenticationPrincipal UserDetails userDetails,
+                             @RequestParam(required = false) String path,
+                             @RequestParam String folderName,
+                             @RequestParam("files") MultipartFile[] files,
+                             RedirectAttributes redirectAttributes) {
+        try {
+            minioService.uploadFolder(userDetails.getUsername(), path, folderName, files);
+        } catch (Exception e) { //TODO показывать message только для кастомных исключений
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage", "Failed to upload file: " + e.getMessage());
+        }
+
+        return redirectByPath(path);
+    }
+
     private static String redirectByPath(String path) {
         if (path != null && !path.isBlank()) {
             return "redirect:/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8);
