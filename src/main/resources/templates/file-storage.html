@@ -109,7 +109,8 @@
                                 <button class="download-button" title="Download">
                                     <span class="icon-download">⬇️</span>
                                 </button>
-                                <button class="rename-button" title="Rename">
+                                <button class="rename-button" title="Rename"
+                                        th:attr="onclick='openRenameFileModal(\'' + ${item.getName()} + '\')'">
                                     <span class="icon-rename">📝</span>
                                 </button>
                                 <form th:action="@{/delete-file}" method="post">
@@ -153,6 +154,26 @@
         </div>
     </div>
 
+    <!-- Модальное окно для переименования файла -->
+    <div id="renameFileModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeRenameFileModal()">&times;</span>
+            <form id="renameFileForm" th:action="@{/rename-file}" method="post">
+                <input type="hidden" name="path" th:value="${path}" />
+                <input type="hidden" id="fileToRename" name="fileToRename" />
+                <input type="hidden" id="newFileName" name="newFileName" />
+                <div class="filename-input-container">
+                    <input type="text" id="fileNameWithoutExtension" name="fileNameWithoutExtension"
+                           placeholder="New file name" required />
+                    <span class="extension-separator">.</span>
+                    <input type="text" id="fileExtension" name="fileExtension" placeholder="ext" maxlength="4"
+                           pattern="[A-Za-z0-9]{1,4}" title="Enter only English letters and numbers (max 4 characters)"/>
+                </div>
+                <button type="submit" class="action-button">Rename</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Модальное окно для отображения ошибки -->
     <div id="errorModal" class="modal">
         <div class="modal-content">
@@ -173,12 +194,69 @@
 
         function openRenameFolderModal(folderName) {
             document.getElementById('folderToRename').value = folderName;
+            document.getElementById('newFolderName').value = folderName;
             document.getElementById('renameFolderModal').style.display = 'block';
         }
 
         function closeRenameFolderModal() {
             document.getElementById('renameFolderModal').style.display = 'none';
         }
+
+        function openRenameFileModal(fileName) {
+            // Разделяем имя файла и расширение
+            const lastDotIndex = fileName.lastIndexOf('.');
+            let nameWithoutExtension = fileName;
+            let extension = '';
+
+            // Если точка найдена и она не является последним символом
+            if (lastDotIndex !== -1 && lastDotIndex < fileName.length - 1) {
+                const potentialExtension = fileName.substring(lastDotIndex + 1);
+
+                // Проверяем длину расширения
+                if (potentialExtension.length <= 4) {
+                    nameWithoutExtension = fileName.substring(0, lastDotIndex);
+                    extension = potentialExtension;
+                }
+                // Если расширение длиннее 4 символов, считаем его частью имени файла
+            }
+
+            // Устанавливаем значения в поля ввода
+            document.getElementById('fileToRename').value = fileName; // Исходное имя файла
+            document.getElementById('fileNameWithoutExtension').value = nameWithoutExtension;
+            document.getElementById('fileExtension').value = extension;
+
+            // Открываем модальное окно
+            document.getElementById('renameFileModal').style.display = 'block';
+        }
+
+        function closeRenameFileModal() {
+            document.getElementById('renameFileModal').style.display = 'none';
+        }
+
+        // Обработка отправки формы переименования файла
+        document.getElementById('renameFileForm').addEventListener('submit', function(event) {
+            // Получаем значения из полей ввода
+            const fileNameWithoutExtension = document.getElementById('fileNameWithoutExtension').value.trim();
+            const fileExtension = document.getElementById('fileExtension').value.trim();
+
+            // Склеиваем имя и расширение
+            const newFileName = fileNameWithoutExtension + (fileExtension ? `.${fileExtension}` : '');
+
+            // Устанавливаем склеенное значение в новое поле
+            document.getElementById('newFileName').value = newFileName;
+
+            // Если нужно, можно добавить валидацию
+            if (!fileNameWithoutExtension) {
+                alert('Имя файла не может быть пустым');
+                event.preventDefault(); // Отменяем отправку формы
+            }
+        });
+
+        // разрешить для расширения только 4 английских символа или цифры
+        document.getElementById('fileExtension').addEventListener('input', function(event) {
+            // Убираем все символы, кроме английских букв и цифр
+            this.value = this.value.replace(/[^A-Za-z0-9]/g, '');
+        });
 
         // Открытие модального окна с ошибкой
         function openErrorModal(errorMessage) {
@@ -194,13 +272,17 @@
         // Закрытие модального окна при клике вне его
         window.onclick = function(event) {
             const createModal = document.getElementById('createFolderModal');
-            const renameModal = document.getElementById('renameFolderModal');
+            const renameFolderModal = document.getElementById('renameFolderModal');
+            const renameFileModal = document.getElementById('renameFileModal');
             const errorModal = document.getElementById('errorModal');
             if (event.target === createModal) {
                 createModal.style.display = 'none';
             }
-            if (event.target === renameModal) {
-                renameModal.style.display = 'none';
+            if (event.target === renameFolderModal) {
+                renameFolderModal.style.display = 'none';
+            }
+            if (event.target === renameFileModal) {
+                renameFileModal.style.display = 'none';
             }
             if (event.target === errorModal) {
                 closeErrorModal();

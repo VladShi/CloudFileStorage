@@ -303,7 +303,7 @@ button.clear-button {
 
 .alert-danger {
     background-color: #682127; /* Темно-красный фон */
-    color: #dfdfdf; /* Белый текст */
+    color: #f1f1f1; /* Белый текст */
     border: 1px solid #8b0000; /* Темная граница */
     padding: 15px;
     border-radius: 4px;
@@ -312,6 +312,11 @@ button.clear-button {
     line-height: 1.3;
     word-wrap: break-word; /* Перенос длинных слов */
     letter-spacing: 0.05vmax; /* Увеличение расстояния между буквами */
+    text-shadow:
+            -1px -1px 0 #333,
+            1px -1px 0 #333,
+            -1px  1px 0 #333,
+            1px  1px 0 #333; /* Темно-серая обводка */
 }
 
 /* Модальные окна */
@@ -369,4 +374,31 @@ button.clear-button {
 .modal form button {
     align-self: center;
     width: 50%;
+}
+
+.filename-input-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.filename-input-container input {
+    padding: 8px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #444;
+    color: #e1e1e1;
+}
+
+#newFileName {
+    flex: 1;
+}
+
+#fileExtension {
+    width: 60px; /* Ширина поля для расширения */
+}
+
+.extension-separator {
+    color: #e1e1e1;
+    font-size: 16px;
 }

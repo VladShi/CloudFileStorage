@@ -112,6 +112,23 @@ public class FileStorageController {
         return redirectByPath(path);
     }
 
+    @PostMapping("/rename-file")
+    public String renameFile(@AuthenticationPrincipal UserDetails userDetails,
+                               @RequestParam(required = false) String path,
+                               @RequestParam String fileToRename,
+                               @RequestParam String newFileName,
+                               RedirectAttributes redirectAttributes) {
+        //TODO валидацию для newFileName (отсутствие слэша)
+        try {
+            minioService.renameFile(userDetails.getUsername(), path, fileToRename, newFileName);
+        } catch (Exception e) { //TODO показывать message только для кастомных исключений
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage", "Failed to rename file. " + e.getMessage());
+        }
+
+        return redirectByPath(path);
+    }
+
     private static String redirectByPath(String path) {
         if (path != null && !path.isBlank()) {
             return "redirect:/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8);

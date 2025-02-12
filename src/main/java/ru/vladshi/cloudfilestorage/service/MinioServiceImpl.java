@@ -219,6 +219,7 @@ public class MinioServiceImpl implements MinioService {
     @Override
     public void renameFolder(String userPrefix, String folderPath, String oldFolderName, String newFolderName) {
         //TODO вынести общий метод. Общий метод будем вызывать дважды и передавать сначала старое потом новое название
+        //TODO если имя совпадает со старым return после проверок null
         if (oldFolderName == null || oldFolderName.isBlank() || newFolderName == null || newFolderName.isBlank()) {
             throw new IllegalArgumentException("Folder name cannot be null or empty");
         }
@@ -405,59 +406,59 @@ public class MinioServiceImpl implements MinioService {
 
     // переименование конкретного файла по пути
     @Override
-    public void renameFile(String basePath, String folderPath, String oldFileName, String newFileName) {
+    public void renameFile(String userPrefix, String folderPath, String oldFileName, String newFileName) {
+        //TODO вынести общий метод. Общий метод будем вызывать дважды и передавать сначала старое потом новое название
+        //TODO если имя совпадает со старым return после проверок null
         if (oldFileName == null || oldFileName.isBlank()) {
-            throw new IllegalArgumentException("File relativePath cannot be null or empty");
+            throw new IllegalArgumentException("File name cannot be null or empty");
         }
 
         if (newFileName == null || newFileName.isBlank()) {
-            throw new IllegalArgumentException("File relativePath cannot be null or empty");
+            throw new IllegalArgumentException("File name cannot be null or empty");
         }
 
-        // Убедимся, что folderPath заканчивается на "/", и не пустое
-        if (folderPath == null || folderPath.isBlank()) {
-            folderPath = "";
-        } else if (!folderPath.endsWith("/")) {
-            folderPath += "/";
+        String fullPrefix = userPrefix;
+        if (folderPath != null && !folderPath.isBlank()) {
+            fullPrefix += folderPath;
+        }
+        if (!fullPrefix.endsWith("/")) {
+            fullPrefix += "/";
         }
 
-        // Полный путь к удаляемому старому файлу
-        String fullOldPath = basePath + folderPath + oldFileName;
+        String fullOldFilePath = fullPrefix + oldFileName;
 
-        // Полный путь к новому файлу
-        String fullNewPath = basePath + folderPath + newFileName;
+        String fullNewFilePath = fullPrefix + newFileName;
 
         try {
-            // Проверяем, существует ли удаляемый файл
-            if (!fileExists(fullOldPath)) {
-                throw new FileNotFoundInStorageException("File not found: " + fullOldPath);
+            if (!fileExists(fullOldFilePath)) {
+                throw new FileNotFoundInStorageException("File not found: " + fullOldFilePath);
             }
 
             // Проверяем, что не занято имя файла для переименования
-            if (fileExists(fullNewPath)) {
-                throw new FileAlreadyExistsInStorageException("File already exist: " + fullNewPath);
+            if (fileExists(fullNewFilePath)) {
+                throw new FileAlreadyExistsInStorageException("File already exist: " + newFileName);
             }
 
             // Копируем объект с новым именем
             minioClient.copyObject(
                     CopyObjectArgs.builder()
                             .bucket(usersBucketName)
-                            .object(fullNewPath)
+                            .object(fullNewFilePath)
                             .source(CopySource.builder()
                                     .bucket(usersBucketName)
-                                    .object(fullOldPath)
+                                    .object(fullOldFilePath)
                                     .build())
                             .build()
             );
 
             // Удаляем старый файл
             minioClient.removeObject(
-                    RemoveObjectArgs.builder().bucket(usersBucketName).object(fullOldPath).build());
+                    RemoveObjectArgs.builder().bucket(usersBucketName).object(fullOldFilePath).build());
 
         } catch (FileNotFoundInStorageException | FileAlreadyExistsInStorageException e) {
             throw e; // Пробрасываем кастомное исключение
         } catch (Exception e) {
-            throw new RuntimeException("Failed to rename file: " + fullOldPath, e);
+            throw new RuntimeException("Failed to rename file: " + fullOldFilePath, e);
         }
     }
 
