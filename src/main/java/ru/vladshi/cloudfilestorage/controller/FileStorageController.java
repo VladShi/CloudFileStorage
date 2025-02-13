@@ -206,6 +206,16 @@ public class FileStorageController {
         }
     }
 
+    @GetMapping("/search")
+    public String search(@AuthenticationPrincipal UserDetails userDetails,
+                         Model model,
+                         @RequestParam(required = false) String searchQuery) {
+        model.addAttribute("items", minioService.searchItems(userDetails.getUsername(), searchQuery));
+        model.addAttribute("searchQuery", searchQuery);
+
+        return "search";
+    }
+
     private String encodeNameForContentDisposition(String name) {
         return URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20");
     }

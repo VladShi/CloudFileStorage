@@ -690,6 +690,9 @@ public class MinioServiceImpl implements MinioService {
     @Override
     public List<StorageItem> searchItems(String userPrefix, String query) {
         List<StorageItem> results = new ArrayList<>();
+        if (query == null || query.isBlank()) {
+            return results;
+        }
 
         try {
             // Получаем список всех объектов в "папке" пользователя (рекурсивно)

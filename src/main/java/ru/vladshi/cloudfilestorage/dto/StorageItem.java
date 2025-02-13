@@ -13,4 +13,16 @@ public record StorageItem(String relativePath, boolean isFolder, long size) {
 
         return pathWithName.substring(lastSlashIndex + 1);
     }
+
+    public String getParentPath() {
+        if (relativePath == null || relativePath.isBlank()) {
+            throw new IllegalArgumentException("Object relativePath cannot be null or empty");
+        }
+
+        String pathWithName = isFolder ? relativePath.substring(0, relativePath.length() - 1) : relativePath;
+
+        int lastSlashIndex = pathWithName.lastIndexOf('/');
+
+        return relativePath.substring(0, lastSlashIndex + 1);
+    }
 }

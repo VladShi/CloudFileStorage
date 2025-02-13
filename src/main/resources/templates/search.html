@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+    <link rel="stylesheet" type="text/css" href="/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="header-left">
+                <a href="/" class="home-link">Home</a>
+            </div>
+            <div class="header-right">
+                <span sec:authentication="name">User</span>
+                <form th:action="@{/auth/logout}" method="post" class="logout-form">
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+        </div>
+    </header>
+    <div class="content">
+
+        <!-- Строка ввода поиска -->
+        <form th:action="@{/search}" method="get" class="search-bar">
+            <input type="text" id="search-query" placeholder="Search..." name="searchQuery" th:value="${searchQuery}"  maxlength="100" />
+<!--            <button class="clear-button" onclick="document.getElementById('search-query').value = '';">X</button>-->
+            <button type="submit" class="search-button">Search</button>
+        </form>
+
+        <!-- Контейнер для кнопок и хлебных крошек+таблицы -->
+        <div class="main-container">
+
+            <div class="breadcrumbs-table-container">
+            <!-- Таблица файлов и папок -->
+            <table class="file-table">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th class="size-column">Size</th>
+                    <th class="actions-column"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${items}" th:if="${item.isFolder()}">
+                    <td>
+                        <span class="folder-icon">&#128193;</span>
+                        <a style="font-weight: lighter; color: #8597c8" th:href="@{/(path=${item.getParentPath()})}" th:text="${item.getParentPath()}"></a><span style="font-weight: bold; color: #f1f1f1; margin-left: 2px" th:text="${item.getName()}"></span>
+                    </td>
+                    <td class="size-column" th:text="'-'"></td>
+                    <td class="actions-column">
+                        <div class="actions">
+                            <form th:action="@{/download-folder}" method="get">
+                                <input type="hidden" name="path" th:value="${item.getParentPath()}" />
+                                <input type="hidden" name="folderName" th:value="${item.getName()}" />
+                                <button type="submit" class="download-button" title="Download">
+                                    <span class="icon-download">⬇️</span>
+                                </button>
+                            </form>
+                            <button class="rename-button" title="Rename"
+                                    th:attr="onclick='openRenameFolderModal(\'' + ${item.getName()} + '\', \'' + ${item.getParentPath()} + '\')'">
+                                <span class="icon-rename">📝</span>
+                            </button>
+                            <form th:action="@{/delete-folder}" method="post">
+                                <input type="hidden" name="path" th:value="${item.getParentPath()}" />
+                                <input type="hidden" name="folderToDelete" th:value="${item.getName()}" required />
+                                <button class="delete-button" title="Delete">
+                                    <span class="icon-delete">❌</span>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:each="item : ${items}" th:if="${not item.isFolder}">
+                    <td>
+                        <span class="file-icon">&#128462;</span>
+                        <a style="font-weight: lighter; color: #8597c8" th:href="@{/(path=${item.getParentPath()})}" th:text="${item.getParentPath()}"></a><span style="font-weight: bold; color: #f1f1f1; margin-left: 2px" th:text="${item.getName()}"></span>
+                    </td>
+                    <td class="size-column" th:text="${item.size() + ' bytes'}"></td>
+                    <td class="actions-column">
+                        <div class="actions">
+                            <form th:action="@{/download-file}" method="get">
+                                <input type="hidden" name="path" th:value="${item.getParentPath()}" />
+                                <input type="hidden" name="fileName" th:value="${item.getName()}" />
+                                <button type="submit" class="download-button" title="Download">
+                                    <span class="icon-download">⬇️</span>
+                                </button>
+                            </form>
+                            <button class="rename-button" title="Rename"
+                                    th:attr="onclick='openRenameFileModal(\'' + ${item.getName()} + '\', \'' + ${item.getParentPath()} + '\')'">
+                                <span class="icon-rename">📝</span>
+                            </button>
+                            <form th:action="@{/delete-file}" method="post">
+                                <input type="hidden" name="path" th:value="${item.getParentPath()}" />
+                                <input type="hidden" name="fileToDelete" th:value="${item.getName()}" required />
+                                <button class="delete-button" title="Delete">
+                                    <span class="icon-delete">❌</span>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для переименования папки -->
+    <div id="renameFolderModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeRenameFolderModal()">&times;</span>
+            <form th:action="@{/rename-folder}" method="post">
+                <input type="hidden" id="folder-rename-path" name="path"/>
+                <input type="hidden" id="folderToRename" name="folderToRename" />
+                <input type="text" id="newFolderName" name="newFolderName" placeholder="New folder name" required />
+                <button type="submit" class="action-button">Rename</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для переименования файла -->
+    <div id="renameFileModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeRenameFileModal()">&times;</span>
+            <form id="renameFileForm" th:action="@{/rename-file}" method="post">
+                <input type="hidden" id="file-rename-path" name="path" />
+                <input type="hidden" id="fileToRename" name="fileToRename" />
+                <input type="hidden" id="newFileName" name="newFileName" />
+                <div class="filename-input-container">
+                    <input type="text" id="fileNameWithoutExtension" name="fileNameWithoutExtension"
+                           placeholder="New file name" required />
+                    <span class="extension-separator">.</span>
+                    <input type="text" id="fileExtension" name="fileExtension" placeholder="ext" maxlength="4"
+                           pattern="[A-Za-z0-9]{1,4}" title="Enter only English letters and numbers (max 4 characters)"/>
+                </div>
+                <button type="submit" class="action-button">Rename</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для отображения ошибки -->
+    <div id="errorModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeErrorModal()">&times;</span>
+            <div id="errorMessage" class="alert alert-danger" role="alert"></div>
+        </div>
+    </div>
+
+    <script>
+        function openRenameFolderModal(folderName, path) {
+            document.getElementById('folder-rename-path').value = path;
+            document.getElementById('folderToRename').value = folderName;
+            document.getElementById('newFolderName').value = folderName;
+            document.getElementById('renameFolderModal').style.display = 'block';
+        }
+
+        function closeRenameFolderModal() {
+            document.getElementById('renameFolderModal').style.display = 'none';
+        }
+
+        function openRenameFileModal(fileName, path) {
+            // Разделяем имя файла и расширение
+            const lastDotIndex = fileName.lastIndexOf('.');
+            let nameWithoutExtension = fileName;
+            let extension = '';
+
+            // Если точка найдена и она не является последним символом
+            if (lastDotIndex !== -1 && lastDotIndex < fileName.length - 1) {
+                const potentialExtension = fileName.substring(lastDotIndex + 1);
+
+                // Проверяем длину расширения
+                if (potentialExtension.length <= 4) {
+                    nameWithoutExtension = fileName.substring(0, lastDotIndex);
+                    extension = potentialExtension;
+                }
+                // Если расширение длиннее 4 символов, считаем его частью имени файла
+            }
+
+            // Устанавливаем значения в поля ввода
+            document.getElementById('file-rename-path').value = path;
+            document.getElementById('fileToRename').value = fileName; // Исходное имя файла
+            document.getElementById('fileNameWithoutExtension').value = nameWithoutExtension;
+            document.getElementById('fileExtension').value = extension;
+
+            // Открываем модальное окно
+            document.getElementById('renameFileModal').style.display = 'block';
+        }
+
+        function closeRenameFileModal() {
+            document.getElementById('renameFileModal').style.display = 'none';
+        }
+
+        // Обработка отправки формы переименования файла
+        document.getElementById('renameFileForm').addEventListener('submit', function(event) {
+            // Получаем значения из полей ввода
+            const fileNameWithoutExtension = document.getElementById('fileNameWithoutExtension').value.trim();
+            const fileExtension = document.getElementById('fileExtension').value.trim();
+
+            // Склеиваем имя и расширение
+            const newFileName = fileNameWithoutExtension + (fileExtension ? `.${fileExtension}` : '');
+
+            // Устанавливаем склеенное значение в новое поле
+            document.getElementById('newFileName').value = newFileName;
+
+            // Если нужно, можно добавить валидацию
+            if (!fileNameWithoutExtension) {
+                alert('Имя файла не может быть пустым');
+                event.preventDefault(); // Отменяем отправку формы
+            }
+        });
+
+        // разрешить для расширения только 4 английских символа или цифры
+        document.getElementById('fileExtension').addEventListener('input', function(event) {
+            // Убираем все символы, кроме английских букв и цифр
+            this.value = this.value.replace(/[^A-Za-z0-9]/g, '');
+        });
+
+        // Открытие модального окна с ошибкой
+        function openErrorModal(errorMessage) {
+            document.getElementById('errorMessage').textContent = errorMessage;
+            document.getElementById('errorModal').style.display = 'block';
+        }
+
+        // Закрытие модального окна с ошибкой
+        function closeErrorModal() {
+            document.getElementById('errorModal').style.display = 'none';
+        }
+
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            const renameFolderModal = document.getElementById('renameFolderModal');
+            const renameFileModal = document.getElementById('renameFileModal');
+            const errorModal = document.getElementById('errorModal');
+            if (event.target === renameFolderModal) {
+                renameFolderModal.style.display = 'none';
+            }
+            if (event.target === renameFileModal) {
+                renameFileModal.style.display = 'none';
+            }
+            if (event.target === errorModal) {
+                closeErrorModal();
+            }
+        }
+
+        // Закрытие сообщения в модальном окне
+        document.addEventListener('DOMContentLoaded', function() {
+            const closeButtons = document.querySelectorAll('.alert .close');
+            closeButtons.forEach(button => {
+                button.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const alert = this.closest('.alert');
+                    if (alert) {
+                        alert.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+    </script>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        document.addEventListener('DOMContentLoaded', function() {
+            const errorMessage = /*[[${errorMessage}]]*/ null;
+            if (errorMessage) {
+                openErrorModal(errorMessage);
+            }
+        });
+        /*]]>*/
+    </script>
+
+</body>
+</html>

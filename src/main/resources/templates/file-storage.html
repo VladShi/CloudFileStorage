@@ -23,8 +23,8 @@
     <div class="content">
 
         <!-- Строка ввода поиска -->
-        <form action="/search" method="get" class="search-bar">
-            <input type="text" id="search-query" placeholder="Search..." th:value="${searchQuery}"  maxlength="100" />
+        <form th:action="@{/search}" method="get" class="search-bar">
+            <input type="text" id="search-query" placeholder="Search..." name="searchQuery" maxlength="100" />
 <!--            <button class="clear-button" onclick="document.getElementById('search-query').value = '';">X</button>-->
             <button class="search-button">Search</button>
         </form>
