@@ -50,12 +50,13 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     private static final String NON_EXISTENT_FOLDER_PATH = "/" + NON_EXISTENT_FOLDER_NAME + "/";
 
     private static final String TEST_FILE_NAME = "test-file.txt";
+    private static final String TEST_FILE_CONTENT = "Hello, MinIO!";
     private static final String RENAMED_FILE_NAME = "renamed-file.txt";
     private static final MultipartFile MULTIPART_TEST_FILE = new MockMultipartFile(
-            "file",
+            TEST_FILE_NAME,
             TEST_FILE_NAME,
             "text/plain",
-            "Hello, MinIO!".getBytes()
+            TEST_FILE_CONTENT.getBytes()
     );
 
     @BeforeEach
@@ -766,64 +767,43 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     @Test
     @DisplayName("Успешное скачивание файла из корневой папки пользователя")
     void shouldDownloadFileFromRootFolderSuccessfully() throws Exception {
-        // Arrange
-        String folderPath = ""; // Пустая строка, так как файл находится в корневой папке
-        String fileName = "report.pdf";
-        String fullPath = TEST_USER_PREFIX + fileName; // Полный путь к файлу
+        minioService.uploadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, MULTIPART_TEST_FILE);
+        String fullFilePath = TEST_USER_PREFIX + "/" + TEST_FILE_NAME;
+        assertTrue(fileExists(fullFilePath), "Файл должен существовать в корневой папке пользователя");
 
-        // Загружаем тестовый файл в MinIO (в корневую папку пользователя)
-        minioClient.putObject(
-                PutObjectArgs.builder()
-                        .bucket(TEST_BUCKET_NAME)
-                        .object(fullPath)
-                        .stream(new ByteArrayInputStream("file content".getBytes()), 12, -1)
-                        .build()
-        );
+        InputStreamResource result = minioService.downloadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, TEST_FILE_NAME);
 
-        // Act
-        InputStreamResource result = minioService.downloadFile(TEST_USER_PREFIX, folderPath, fileName);
-
-        // Assert
         assertNotNull(result);
-        assertEquals("file content", new String(result.getInputStream().readAllBytes()));
+        assertEquals(TEST_FILE_CONTENT, new String(result.getInputStream().readAllBytes()));
     }
 
     @Test
     @DisplayName("Успешное скачивание файла из вложенной папки")
     void shouldDownloadFileFromNestedFolderSuccessfully() throws Exception {
-        // Arrange
-        String folderPath = "documents/";
-        String fileName = "report.pdf";
-        String fullPath = TEST_USER_PREFIX + folderPath + fileName;
+        minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
+        assertTrue(fileExists(TEST_USER_PREFIX + FOLDER_0_LVL_PATH),
+                "Папка должна существовать в корневой папке пользователя");
+        minioService.uploadFile(TEST_USER_PREFIX, FOLDER_0_LVL_PATH, MULTIPART_TEST_FILE);
+        String fullFilePath = TEST_USER_PREFIX + FOLDER_0_LVL_PATH + TEST_FILE_NAME;
+        assertTrue(fileExists(fullFilePath), "Файл должен существовать во вложенной папке");
 
-        // Загружаем тестовый файл в MinIO
-        minioClient.putObject(
-                PutObjectArgs.builder()
-                        .bucket(TEST_BUCKET_NAME)
-                        .object(fullPath)
-                        .stream(new ByteArrayInputStream("file content".getBytes()), 12, -1)
-                        .build()
-        );
+        InputStreamResource result = minioService.downloadFile(TEST_USER_PREFIX, FOLDER_0_LVL_PATH, TEST_FILE_NAME);
 
-        // Act
-        InputStreamResource result = minioService.downloadFile(TEST_USER_PREFIX, folderPath, fileName);
-
-        // Assert
         assertNotNull(result);
-        assertEquals("file content", new String(result.getInputStream().readAllBytes()));
+        assertEquals(TEST_FILE_CONTENT, new String(result.getInputStream().readAllBytes()));
     }
 
     @Test
-    @DisplayName("Должен выкидывать исключение при скачивании несуществующего файла")
+    @DisplayName("Проверка выкидывания исключения при попытке скачивании несуществующего файла")
     void shouldThrowExceptionWhenDownloadingNonExistentFile() {
-        // Arrange
-        String folderPath = "documents/";
+        String folderPath = "/documents/";
         String fileName = "report.pdf";
+        assertFalse(fileExists(TEST_USER_PREFIX + folderPath + fileName), "Файл не должен существовать");
 
-        // Act & Assert
         assertThrows(
                 FileNotFoundInStorageException.class,
-                () -> minioService.downloadFile(TEST_USER_PREFIX, folderPath, fileName)
+                () -> minioService.downloadFile(TEST_USER_PREFIX, folderPath, fileName),
+                "Должно выбрасываться исключение при попытке скачивании несуществующего файла"
         );
     }
 

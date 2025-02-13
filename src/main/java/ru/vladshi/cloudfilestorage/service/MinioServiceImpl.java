@@ -563,38 +563,40 @@ public class MinioServiceImpl implements MinioService {
 
     // скачивание конкретного файла по пути
     @Override
-    public InputStreamResource downloadFile(String basePath, String folderPath, String fileName) {
-        // Формируем полный путь к файлу
-        String fullPath = basePath;
-        if (folderPath != null && !folderPath.isBlank()) {
-            fullPath += folderPath;
-            if (!fullPath.endsWith("/")) {
-                fullPath += "/";
-            }
+    public InputStreamResource downloadFile(String userPrefix, String folderPath, String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            throw new IllegalArgumentException("File name cannot be null or empty");
         }
-        fullPath += fileName;
+
+        String fullPrefix = userPrefix;
+        if (folderPath != null && !folderPath.isBlank()) {
+            fullPrefix += folderPath;
+        }
+        if (!fullPrefix.endsWith("/")) {
+            fullPrefix += "/";
+        }
+
+        String fullFilePath = fullPrefix + fileName;
 
         try {
-            // Получаем объект из MinIO
             InputStream inputStream = minioClient.getObject(
                     GetObjectArgs.builder()
                             .bucket(usersBucketName)
-                            .object(fullPath)
+                            .object(fullFilePath)
                             .build()
             );
-
-            // Возвращаем InputStreamResource для скачивания
             return new InputStreamResource(inputStream);
         } catch (ErrorResponseException e) {
             // Проверяем, что файл не найден
             if ("NoSuchKey".equals(e.errorResponse().code())) {
-                throw new FileNotFoundInStorageException("File not found: " + fullPath);
+                throw new FileNotFoundInStorageException("File not found: " +
+                        (folderPath != null ? folderPath + fileName : fileName));
             }
             // Пробрасываем другие ошибки
-            throw new RuntimeException("Failed to download file: " + fullPath, e);
+            throw new RuntimeException("Failed to download file: " + fullFilePath, e);
         } catch (Exception e) {
             // Обрабатываем другие исключения
-            throw new RuntimeException("Failed to download file: " + fullPath, e);
+            throw new RuntimeException("Failed to download file: " + fullFilePath, e);
         }
     }
 

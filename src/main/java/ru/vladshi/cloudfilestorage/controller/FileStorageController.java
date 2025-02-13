@@ -1,6 +1,11 @@
 package ru.vladshi.cloudfilestorage.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -143,6 +148,32 @@ public class FileStorageController {
         }
 
         return redirectByPath(path);
+    }
+
+    @GetMapping("/download-file")
+    public ResponseEntity<InputStreamResource> downloadFile(@AuthenticationPrincipal UserDetails userDetails,
+                                                            @RequestParam(required = false) String path,
+                                                            @RequestParam String fileName,
+                                                            RedirectAttributes redirectAttributes) {
+        try {
+            InputStreamResource inputStreamResource =
+                    minioService.downloadFile(userDetails.getUsername(), path, fileName);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName);
+            headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(inputStreamResource);
+        } catch (Exception e) { //TODO показывать message только для кастомных исключений
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage", "Failed to download file. " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION,
+                            path != null ? "/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8) : "/")
+                    .build();
+        }
     }
 
     private static String redirectByPath(String path) {

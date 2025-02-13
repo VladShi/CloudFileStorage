@@ -114,9 +114,13 @@
                         <td class="size-column" th:text="${item.size() + ' bytes'}"></td>
                         <td class="actions-column">
                             <div class="actions">
-                                <button class="download-button" title="Download">
-                                    <span class="icon-download">⬇️</span>
-                                </button>
+                                <form th:action="@{/download-file}" method="get">
+                                    <input type="hidden" name="path" th:value="${path}" />
+                                    <input type="hidden" name="fileName" th:value="${item.getName()}" />
+                                    <button type="submit" class="download-button" title="Download">
+                                        <span class="icon-download">⬇️</span>
+                                    </button>
+                                </form>
                                 <button class="rename-button" title="Rename"
                                         th:attr="onclick='openRenameFileModal(\'' + ${item.getName()} + '\')'">
                                     <span class="icon-rename">📝</span>
@@ -297,7 +301,7 @@
             }
         }
 
-        // Закрытие сообщения об успехе / ошибке
+        // Закрытие сообщения в модальном окне
         document.addEventListener('DOMContentLoaded', function() {
             const closeButtons = document.querySelectorAll('.alert .close');
             closeButtons.forEach(button => {
