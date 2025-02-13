@@ -602,83 +602,88 @@ public class MinioServiceImpl implements MinioService {
 
     // скачивание конкретной папки со всем вложенным по пути
     @Override
-    public InputStreamResource downloadFolder(String basePath, String folderPath, String folderName) {
-        // Формируем полный путь к папке
+    public InputStreamResource downloadFolder(String userPrefix, String folderPath, String folderName) {
         if (folderName == null || folderName.isBlank()) {
-            throw new IllegalArgumentException("Folder relativePath cannot be null or empty");
-        } else if (!folderName.endsWith("/")) {
-            folderName += "/";
+            throw new IllegalArgumentException("Folder name cannot be null or empty");
         }
 
-        // Убедимся, что folderPath заканчивается на "/", и не пустое
-        if (folderPath == null || folderPath.isBlank()) {
-            folderPath = "";
-        } else if (!folderPath.endsWith("/")) {
-            folderPath += "/";
+        String fullPrefix = userPrefix;
+        if (folderPath != null && !folderPath.isBlank()) {
+            fullPrefix += folderPath;
+        }
+        if (!fullPrefix.endsWith("/")) {
+            fullPrefix += "/";
         }
 
-        String fullFolderPath = basePath + folderPath + folderName;
+        String fullFolderPath = fullPrefix + folderName + "/";
 
         Path tempZipFile = null;
 
         try {
-
-            // Проверяем, что папка, которую скачиваем, существует
             if (!folderExists(fullFolderPath)) {
-                throw new FolderNotFoundException("Folder does not exist: " + fullFolderPath);
+                throw new FolderNotFoundException("Folder does not exist: " +
+                        (folderPath != null ? folderPath + folderName : folderName));
             }
 
-            // Получаем список всех объектов в папке (рекурсивно)
-            Iterable<Result<Item>> results = minioClient.listObjects(
+            Iterable<Result<Item>> objectsToDownload = minioClient.listObjects(
                     ListObjectsArgs.builder()
                             .bucket(usersBucketName)
+                            .startAfter(fullFolderPath)
                             .prefix(fullFolderPath)
+                            .delimiter("/")
                             .recursive(true)
                             .build()
             );
 
-            // Создаем временный файл для ZIP-архива
-            tempZipFile = Files.createTempFile("folder-", ".zip");
-            try (ZipOutputStream zipOut = new ZipOutputStream(Files.newOutputStream(tempZipFile))) {
-                // Добавляем каждый файл в архив
-                for (Result<Item> result : results) {
-                    Item item = result.get();
-                    String objectName = item.objectName();
-                    boolean isFolder = objectName.endsWith("/");
-                    if (!isFolder) { // Пропускаем папки, так как они создаются автоматически
-                        String entryName = objectName.substring(fullFolderPath.length()); // Относительный путь в архиве
+            tempZipFile = getArchivedObjects(objectsToDownload, fullFolderPath);
 
-                        // Добавляем файл в архив
-                        zipOut.putNextEntry(new ZipEntry(entryName));
-                        try (InputStream inputStream = minioClient.getObject(
-                                GetObjectArgs.builder()
-                                        .bucket(usersBucketName)
-                                        .object(objectName)
-                                        .build()
-                        )) {
-                            inputStream.transferTo(zipOut);
-                        }
-                        zipOut.closeEntry();
-                    }
-                }
-            }
-
-            // Возвращаем ZIP-архив в виде InputStreamResource
             return new InputStreamResource(Files.newInputStream(tempZipFile));
+
         } catch (FolderNotFoundException e) {
             throw e; // Пробрасываем кастомные исключения
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Failed to download folder: " + fullFolderPath, e);
         } finally {
             if (tempZipFile != null) {
                 try {
-                    Files.deleteIfExists(tempZipFile); // Удаляем временный файл
+                    Files.deleteIfExists(tempZipFile);
                 } catch (IOException e) {
                     // Логируем ошибку удаления файла (если она произошла)
                     e.printStackTrace();
                 }
             }
         }
+    }
+
+    private Path getArchivedObjects(Iterable<Result<Item>> objects, String parentFolderPrefix) throws Exception {
+        Path tempZipFile = Files.createTempFile("folder-", ".zip");
+        try (ZipOutputStream zipOut = new ZipOutputStream(Files.newOutputStream(tempZipFile))) {
+            Set<String> addedFolders = new HashSet<>();
+            for (Result<Item> object : objects) {
+                Item item = object.get();
+                String objectName = item.objectName();
+                boolean isFolder = objectName.endsWith("/");
+                String relativeName = objectName.substring(parentFolderPrefix.length()); // Относительный путь в архиве
+                if (isFolder && !addedFolders.contains(relativeName)) {
+                    zipOut.putNextEntry(new ZipEntry(relativeName));
+                    zipOut.closeEntry();
+                    addedFolders.add(relativeName);
+                } else {
+                    zipOut.putNextEntry(new ZipEntry(relativeName));
+                    try (InputStream inputStream = minioClient.getObject(
+                            GetObjectArgs.builder()
+                                    .bucket(usersBucketName)
+                                    .object(objectName)
+                                    .build()
+                    )) {
+                        inputStream.transferTo(zipOut);
+                    }
+                    zipOut.closeEntry();
+                }
+            }
+        }
+        return tempZipFile;
     }
 
     // поиск по имени, части имени
@@ -712,7 +717,7 @@ public class MinioServiceImpl implements MinioService {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to search by relativePath: " + query, e);
+            throw new RuntimeException("Failed to search by: " + query, e);
         }
 
         return results;

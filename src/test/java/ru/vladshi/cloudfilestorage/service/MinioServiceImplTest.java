@@ -810,8 +810,7 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     @Test
     @DisplayName("Успешное скачивание папки в виде ZIP-архива")
     void shouldDownloadFolderAsZipSuccessfully() throws Exception {
-        // Arrange
-        String folderPath = "documents/";
+        String folderPath = "/documents/";
         String folderName = "my-folder";
         String fullFolderPath = TEST_USER_PREFIX + folderPath + folderName + "/";
 
@@ -854,11 +853,9 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
                         .build()
         );
 
-        // Act
         InputStreamResource result = minioService.downloadFolder(TEST_USER_PREFIX, folderPath, folderName);
 
-        // Assert
-        assertNotNull(result);
+        assertNotNull(result, "Результат скачивания папки с контентом не должен быть пустым");
 
         // Проверяем содержимое ZIP-архива
         try (ZipInputStream zipIn = new ZipInputStream(result.getInputStream())) {
@@ -868,7 +865,7 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
                 files.put(entry.getName(), new String(zipIn.readAllBytes()));
             }
 
-            assertEquals(2, files.size());
+            assertEquals(3, files.size());
             assertEquals("file1 content", files.get("file1.txt"));
             assertEquals("file2 content", files.get("sub-folder/file2.txt"));
         }
@@ -877,23 +874,20 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     @Test
     @DisplayName("Попытка скачивания несуществующей папки")
     void shouldThrowExceptionWhenFolderNotFound() {
-        // Arrange
-        String folderPath = "documents/";
+        String folderPath = "/documents/";
         String folderName = "non-existent-folder";
 
-        // Act & Assert
-        FolderNotFoundException exception = assertThrows(
+        assertThrows(
                 FolderNotFoundException.class,
                 () -> minioService.downloadFolder(TEST_USER_PREFIX, folderPath, folderName)
         );
-        assertEquals("Folder does not exist: " + TEST_USER_PREFIX + folderPath + folderName + "/", exception.getMessage());
     }
 
     @Test
     @DisplayName("Скачивание папки с файлами, содержащими специальные символы в именах")
     void shouldDownloadFolderWithSpecialCharactersInFileNames() throws Exception {
         // Arrange
-        String folderPath = "documents/";
+        String folderPath = "/documents/";
         String folderName = "special-chars-folder";
         String fullFolderPath = TEST_USER_PREFIX + folderPath + folderName + "/";
 

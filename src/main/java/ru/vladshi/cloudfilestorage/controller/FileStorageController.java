@@ -156,16 +156,18 @@ public class FileStorageController {
                                                             @RequestParam String fileName,
                                                             RedirectAttributes redirectAttributes) {
         try {
-            InputStreamResource inputStreamResource =
+            InputStreamResource fileResource =
                     minioService.downloadFile(userDetails.getUsername(), path, fileName);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName);
-            headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+            String encodedFileName = encodeNameForContentDisposition(fileName);
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + encodedFileName);
 
             return ResponseEntity.ok()
                     .headers(headers)
-                    .body(inputStreamResource);
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(fileResource);
+
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to download file. " + e.getMessage());
@@ -174,6 +176,38 @@ public class FileStorageController {
                             path != null ? "/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8) : "/")
                     .build();
         }
+    }
+
+    @GetMapping("/download-folder")
+    public ResponseEntity<InputStreamResource> downloadFolder(@AuthenticationPrincipal UserDetails userDetails,
+                                                            @RequestParam(required = false) String path,
+                                                            @RequestParam String folderName,
+                                                            RedirectAttributes redirectAttributes) {
+        try {
+            InputStreamResource folderResource =
+                    minioService.downloadFolder(userDetails.getUsername(), path, folderName);
+
+            HttpHeaders headers = new HttpHeaders();
+            String encodedFolderName = encodeNameForContentDisposition(folderName);
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + encodedFolderName + ".zip");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(folderResource);
+
+        } catch (Exception e) { //TODO показывать message только для кастомных исключений
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage", "Failed to download folder. " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION,
+                            path != null ? "/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8) : "/")
+                    .build();
+        }
+    }
+
+    private String encodeNameForContentDisposition(String name) {
+        return URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private static String redirectByPath(String path) {
