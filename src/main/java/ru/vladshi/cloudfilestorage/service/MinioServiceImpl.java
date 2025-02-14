@@ -534,7 +534,7 @@ public class MinioServiceImpl implements MinioService {
                 ));
             }
 
-            for (String path : foldersToCreate) {
+            for (String path : foldersToCreate) { // TODO не создаются пустые файлы(папки) для промежуточных пустых папок
                 objectsToUpload.add(new SnowballObject(
                         path,
                         new ByteArrayInputStream(new byte[0]),

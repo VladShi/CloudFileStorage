@@ -4,13 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <title>Home</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" type="text/css" href="/css/style.css">
 </head>
 <body>
     <header class="header">
         <div class="header-content">
             <div class="header-left">
-                <a href="/" class="home-link">Home</a>
+                <i class="fa-solid fa-cloud"></i><a href="/" class="home-link">Cloud file storage</a>
             </div>
             <div class="header-right">
                 <span sec:authentication="name">User</span>
@@ -24,9 +25,15 @@
 
         <!-- Строка ввода поиска -->
         <form th:action="@{/search}" method="get" class="search-bar">
-            <input type="text" id="search-query" placeholder="Search..." name="searchQuery" maxlength="100" />
-<!--            <button class="clear-button" onclick="document.getElementById('search-query').value = '';">X</button>-->
-            <button class="search-button">Search</button>
+            <input type="text" id="search-query" placeholder="Search..." name="searchQuery" th:value="${searchQuery}" maxlength="100" />
+            <!-- Кнопка очистки -->
+            <button type="button" class="clear-button" onclick="clearSearch()">
+                <i class="fa fa-xmark"></i> <!-- Иконка крестика -->
+            </button>
+            <!-- Кнопка поиска -->
+            <button type="submit" class="search-button">
+                <i class="fa-solid fa-magnifying-glass"></i> <!-- Иконка лупы -->
+            </button>
         </form>
 
         <!-- Контейнер для кнопок и хлебных крошек+таблицы -->
@@ -35,7 +42,7 @@
             <!-- Контейнер для кнопок -->
             <div class="action-buttons">
                 <button class="action-button create-folder-button" onclick="openCreateFolderModal()">
-                    Create Folder
+                    <i class="fa-solid fa-folder-plus"></i> Create Folder
                 </button>
                 <br>
                 <form id="uploadFileForm" th:action="@{/upload-file}" method="post" enctype="multipart/form-data">
@@ -44,7 +51,7 @@
                            onchange="uploadFile()"/>
                     <button type="button" class="action-button upload-file-button"
                             onclick="document.getElementById('fileInput').click()">
-                        Upload File
+                        <i class="fa-solid fa-file-arrow-up"></i> Upload File
                     </button>
                 </form>
                 <form id="uploadFolderForm" th:action="@{/upload-folder}" method="post" enctype="multipart/form-data">
@@ -53,7 +60,7 @@
                            onchange="uploadFolder()"/>
                     <button type="button" class="action-button upload-folder-button"
                             onclick="document.getElementById('folderInput').click()">
-                        Upload Folder
+                        <i class="fa-solid fa-upload"></i> Upload Folder
                     </button>
                 </form>
             </div>
@@ -63,7 +70,7 @@
 
                 <!-- Хлебные крошки -->
                 <div class="breadcrumbs">
-                    <a href="/" class="home-crumb">🏠</a>
+                    <a href="/" class="home-crumb"><i class="fa-solid fa-house"></i></a>
                     <span th:each="crumb, iterStat : ${breadcrumbs}">
                         <span class="breadcrumb-separator">/</span>
                         <a th:if="${not iterStat.last}" th:href="@{/(path=${crumb.path()})}" th:text="${crumb.name()}"></a>
@@ -83,7 +90,7 @@
                     <tbody>
                     <tr th:each="item : ${items}" th:if="${item.isFolder()}">
                         <td>
-                            <span class="folder-icon">&#128193;</span>
+                            <span class="folder-icon"><i class="fa-solid fa-folder"></i></span>
                             <a th:href="@{/(path=${item.relativePath()})}" th:text="${item.getName()}"></a>
                         </td>
                         <td class="size-column" th:text="'-'"></td>
@@ -93,18 +100,20 @@
                                     <input type="hidden" name="path" th:value="${path}" />
                                     <input type="hidden" name="folderName" th:value="${item.getName()}" />
                                     <button type="submit" class="download-button" title="Download">
-                                        <span class="icon-download">⬇️</span>
+                                        <i class="fa-solid fa-download"></i>
                                     </button>
                                 </form>
                                 <button class="rename-button" title="Rename"
                                         th:attr="onclick='openRenameFolderModal(\'' + ${item.getName()} + '\')'">
-                                    <span class="icon-rename">📝</span>
+<!--                                    <i class="fa-solid fa-pencil"></i> <i class="fa-solid fa-pen-fancy"></i>-->
+                                    <i class="fa-solid fa-file-pen"></i>
                                 </button>
                                 <form th:action="@{/delete-folder}" method="post">
                                     <input type="hidden" name="path" th:value="${path}" />
                                     <input type="hidden" name="folderToDelete" th:value="${item.getName()}" required />
                                     <button class="delete-button" title="Delete">
-                                        <span class="icon-delete">❌</span>
+<!--                                        <i class="fa-solid fa-xmark"></i>-->
+                                        <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </form>
                             </div>
@@ -112,7 +121,7 @@
                     </tr>
                     <tr th:each="item : ${items}" th:if="${not item.isFolder}">
                         <td>
-                            <span class="file-icon">&#128462;</span>
+                            <span class="file-icon"><i class="fa-regular fa-file-lines"></i></span>
                             <span th:text="${item.getName()}"></span>
                         </td>
                         <td class="size-column" th:text="${item.size() + ' bytes'}"></td>
@@ -122,18 +131,18 @@
                                     <input type="hidden" name="path" th:value="${path}" />
                                     <input type="hidden" name="fileName" th:value="${item.getName()}" />
                                     <button type="submit" class="download-button" title="Download">
-                                        <span class="icon-download">⬇️</span>
+                                        <i class="fa-solid fa-download"></i>
                                     </button>
                                 </form>
                                 <button class="rename-button" title="Rename"
                                         th:attr="onclick='openRenameFileModal(\'' + ${item.getName()} + '\')'">
-                                    <span class="icon-rename">📝</span>
+                                    <i class="fa-solid fa-file-pen"></i>
                                 </button>
                                 <form th:action="@{/delete-file}" method="post">
                                     <input type="hidden" name="path" th:value="${path}" />
                                     <input type="hidden" name="fileToDelete" th:value="${item.getName()}" required />
                                     <button class="delete-button" title="Delete">
-                                        <span class="icon-delete">❌</span>
+                                        <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </form>
                             </div>
@@ -344,6 +353,32 @@
             // Отправляем форму
             form.submit();
         }
+
+        // кнопка очисти строки поиска
+        function toggleClearButton() {
+            const searchInput = document.getElementById('search-query');
+            const clearButton = document.querySelector('.clear-button');
+            if (searchInput.value.trim() !== '') {
+                clearButton.style.display = 'flex'; // Показываем кнопку
+            } else {
+                clearButton.style.display = 'none'; // Скрываем кнопку
+            }
+        }
+
+        // кнопка очисти строки поиска
+        function clearSearch() {
+            const searchInput = document.getElementById('search-query');
+            searchInput.value = ''; // Очищаем поле ввода
+            searchInput.focus(); // Возвращаем фокус на поле ввода
+            toggleClearButton(); // Скрываем кнопку
+        }
+
+        // кнопка очисти строки поиска. Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('search-query');
+            searchInput.addEventListener('input', toggleClearButton); // Отслеживаем ввод
+            toggleClearButton(); // Проверяем начальное состояние
+        });
 
     </script>
 

@@ -33,7 +33,7 @@ public class CustomErrorController implements ErrorController {
             case FORBIDDEN -> "error/access-denied";  // 403
             case NOT_FOUND -> "error/error-404";
             case INTERNAL_SERVER_ERROR -> "error/error-500";
-            default -> "error/error";
+            default -> "error/error";  // TODO проверить доступ к страницам с ошибками для не аутентифицированных юзеров
         };
     }
 }

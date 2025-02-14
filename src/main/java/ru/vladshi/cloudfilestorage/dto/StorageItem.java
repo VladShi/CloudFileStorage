@@ -24,5 +24,5 @@ public record StorageItem(String relativePath, boolean isFolder, long size) {
         int lastSlashIndex = pathWithName.lastIndexOf('/');
 
         return relativePath.substring(0, lastSlashIndex + 1);
-    }
+    } // TODO сделать метод для отображения размера файла в нормальном виде.
 }

@@ -73,6 +73,18 @@ a:hover {
     text-align: center;      /* Центрирование текста внутри контейнера */
 }
 
+.home-link {
+    color: #eaeaea;
+    font-weight: bold;
+    font-size: 20px;
+    margin-left: 3px;
+}
+
+.home-link:hover {
+    color: white;
+    text-decoration: none;
+}
+
 /* Стили для заголовка и текста */
 .center-container h1 {
     margin-bottom: 20px;    /* Отступ снизу для заголовка */
@@ -130,25 +142,70 @@ a:hover {
     gap: 20px; /* Расстояние между элементами */
 }
 
-/* Строка ввода поиска */
 .search-bar {
+    position: relative; /* Для позиционирования кнопки очистки */
     display: flex;
     align-items: center;
-    padding-left: 190px;
+    padding-left: 170px;
+    width: 100%; /* Ширина строки поиска */
+    max-width: 850px; /* Ограничение максимальной ширины */
 }
 
+/* Поле ввода поиска */
 .search-bar input {
-    flex: 1; /* Занимает все доступное пространство */
-    max-width: 850px; /* Ограничение максимальной ширины */
+    flex: 1; /* Занимает всё доступное пространство */
+    padding-right: 40px; /* Отступ справа для кнопки очистки */
     margin-right: 4px;
 }
 
-button.clear-button {
-    padding: 10px 7px;
+.clear-button {
+    position: absolute; /* Позиционируем поверх поля ввода */
+    right: 50px; /* Отступ от правого края поля ввода */
+    top: 50%; /* Выравниваем по вертикали */
+    transform: translateY(-50%); /* Точное выравнивание по центру */
+    background-color: transparent; /* Прозрачный фон */
+    border: none;
+    color: rgba(255, 255, 255, 0.5); /* Серый полупрозрачный цвет */
+    cursor: pointer;
+    padding: 10px 5px 10px 0;
+    display: none; /* По умолчанию скрыта */
+    align-items: center;
+    justify-content: center;
 }
 
-.search-bar button {
-    margin-left: 2px;
+.clear-button:hover {
+    background-color: transparent;
+}
+
+/* Изменение цвета иконки при наведении */
+.clear-button:hover i {
+    color: rgba(255, 255, 255, 0.8); /* Цвет иконки при наведении */
+}
+
+.clear-button i {
+    font-size: 12px; /* Размер иконки */
+    transition: color 0.2s ease; /* Плавное изменение цвета */
+}
+
+/* Кнопка поиска */
+.search-button {
+    background-color: #555;
+    color: #e4e4e4;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-button:hover {
+    background-color: #666;
+}
+
+.search-button i {
+    font-size: 16px; /* Размер иконки */
 }
 
 .main-container {
@@ -169,35 +226,25 @@ button.clear-button {
     background-color: #555;
     color: #fff;
     border: none;
-    padding: 10px 10px;
+    padding: 10px 15px; /* Уменьшим padding для компактности */
     border-radius: 4px;
     cursor: pointer;
-    text-decoration: none;
-    width: 170px; /* Фиксированная ширина для всех кнопок */
-    text-align: center; /* Выравнивание текста по левому краю */
+    text-decoration: none; /* ? */
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Расстояние между иконкой и текстом */
+    width: 150px; /* Фиксированная ширина */
+    text-align: left; /* Выравнивание текста по левому краю */
 }
 
 .action-button:hover {
     background-color: #666;
 }
 
-/* Иконки для кнопок */
-.create-folder-button::before {
-    content: '📁'; /* Иконка папки */
-    /*margin-right: 10px;*/
-    font-size: 16px;
-}
-
-.upload-file-button::before {
-    content: '📂'; /* Иконка загрузки файла */
-    /*margin-right: 10px;*/
-    font-size: 16px;
-}
-
-.upload-folder-button::before {
-    content: '🗂️'; /* Иконка загрузки папки */
-    /*margin-right: 10px;*/
-    font-size: 16px;
+.action-button i {
+    font-size: 16px; /* Размер иконки */
+    width: 20px; /* Фиксированная ширина для иконок */
+    text-align: center; /* Центрирование иконки внутри фиксированной ширины */
 }
 
 /* Контейнер для хлебных крошек и таблицы */
@@ -215,6 +262,11 @@ button.clear-button {
     align-items: center;
     flex: 1; /* Занимает все доступное пространство */
     margin-right: 20px; /* Отступ от кнопок */
+}
+
+.home-crumb i {
+    width: 20px; /* Фиксированная ширина для иконок */
+    text-align: center; /* Центрирование иконки внутри фиксированной ширины */
 }
 
 .breadcrumbs a {
@@ -296,18 +348,33 @@ button.clear-button {
 }
 
 /* Иконки */
-.folder-icon {
-    margin-right: 5px;
+.folder-icon i {
+    font-size: 16px;
+    color: bisque;
+    width: 18px; /* Фиксированная ширина для иконок */
+    text-align: center; /* Центрирование иконки внутри фиксированной ширины */
+}
+
+.file-icon i {
+    font-size: 16px;
+    width: 18px; /* Фиксированная ширина для иконок */
+    text-align: center; /* Центрирование иконки внутри фиксированной ширины */
+}
+
+.download-button i {
     font-size: 16px;
 }
 
-.file-icon {
-    margin-right: 5px;
+.rename-button i {
     font-size: 16px;
 }
 
-.icon-download, .icon-rename, .icon-delete {
+.delete-button i {
     font-size: 16px;
+}
+
+.delete-button:hover {
+    color: #ed244e;
 }
 
 /* Всплывающие окна */
@@ -390,10 +457,16 @@ button.clear-button {
     width: 100%;
 }
 
-.modal form button {
+.modal form .action-button {
+    display: inline;
     align-self: center;
+    text-align: center;
     width: 50%;
 }
+/*.modal form button {*/
+/*    align-self: center;*/
+/*    width: 50%;*/
+/*}*/
 
 .filename-input-container {
     display: flex;

@@ -47,7 +47,7 @@ public class FileStorageController {
 
         model.addAttribute("path", path);
         model.addAttribute("breadcrumbs", BreadcrumbUtil.buildBreadcrumbs(path));
-        model.addAttribute("items", storageItems); //TODO добавить обработку path на существование
+        model.addAttribute("items", storageItems);
 
         return "file-storage";
     }
@@ -112,7 +112,7 @@ public class FileStorageController {
                     "errorMessage", "Failed to upload file: " + e.getMessage());
         }
 
-        return redirectByPath(path);
+        return redirectByPath(path); // TODO увеличить максимальный размер загружаемого файла в спринге (по-умолчанию 30мб)
     }
 
     @PostMapping("/delete-file")
