@@ -14,12 +14,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import ru.vladshi.cloudfilestorage.dto.StorageItem;
+import ru.vladshi.cloudfilestorage.exception.FolderNotFoundException;
 import ru.vladshi.cloudfilestorage.service.MinioService;
 import ru.vladshi.cloudfilestorage.util.BreadcrumbUtil;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
@@ -32,9 +36,18 @@ public class FileStorageController {
                             Model model,
                             @RequestParam(required = false) String path) {
 
+        List<StorageItem> storageItems;
+        try {
+            storageItems = minioService.getItems(userDetails.getUsername(), path);
+        } catch (FolderNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Folder not found", e);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error", e);
+        }
+
         model.addAttribute("path", path);
         model.addAttribute("breadcrumbs", BreadcrumbUtil.buildBreadcrumbs(path));
-        model.addAttribute("items", minioService.getItems(userDetails.getUsername(), path)); //TODO добавить обработку path на существование
+        model.addAttribute("items", storageItems); //TODO добавить обработку path на существование
 
         return "file-storage";
     }

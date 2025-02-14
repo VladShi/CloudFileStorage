@@ -7,12 +7,12 @@
     <link rel="stylesheet" type="text/css" href="/css/style.css">
 </head>
 <body>
+    <div class="center-container">
+        <h1>Access Denied. </h1>
 
-    <h1>Access Denied. </h1>
-
-    <p><span sec:authentication="name">User</span>, you do not have permission to access this page.</p>
-    <br>
-    <a th:href="@{/}" class="btn-link">Go Home</a>
-
+        <p><span sec:authentication="name">User</span>, you do not have permission to access this page.</p>
+        <br>
+        <a th:href="@{/}" class="btn-link">Go Home</a>
+    </div>
 </body>
 </html>

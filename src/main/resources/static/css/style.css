@@ -63,6 +63,25 @@ a:hover {
     background-color: #666;
 }
 
+/* Центрирование содержимого */
+.center-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Центрирование по горизонтали */
+    align-items: center;     /* Центрирование по вертикали */
+    height: 100vh;           /* Занимает всю высоту экрана */
+    text-align: center;      /* Центрирование текста внутри контейнера */
+}
+
+/* Стили для заголовка и текста */
+.center-container h1 {
+    margin-bottom: 20px;    /* Отступ снизу для заголовка */
+}
+
+.center-container p {
+    margin-bottom: 20px;    /* Отступ снизу для текста */
+}
+
 .header {
     display: flex;
     justify-content: space-between; /* Распределение элементов по краям */

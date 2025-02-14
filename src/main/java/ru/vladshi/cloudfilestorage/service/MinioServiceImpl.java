@@ -66,7 +66,10 @@ public class MinioServiceImpl implements MinioService {
         }
 
         try {
-            // TODO добавить проверку существования path если оно не пустое(folderExists), в случае если не существует то кидаем исключение и по нему на главную страницу
+            if (!fullPrefix.equals(userPrefix + "/") && !folderExists(fullPrefix)) {
+                throw new FolderNotFoundException("Folder does not exist: " + folderPath);
+            }
+
             Iterable<Result<Item>> results = minioClient.listObjects(
                     ListObjectsArgs.builder()
                             .bucket(usersBucketName)
@@ -85,6 +88,9 @@ public class MinioServiceImpl implements MinioService {
 
                 items.add(new StorageItem(relativePath, isFolder, item.size()));
             }
+        } catch (FolderNotFoundException e) {
+            // Пробрасываем кастомные исключения дальше
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to list user items", e);
         }
