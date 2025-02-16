@@ -58,8 +58,8 @@ public class FileStorageController {
                                @RequestParam String newFolderName,
                                RedirectAttributes redirectAttributes) {
         try {
-            //TODO валидацию для newFolderName (отсутствие слэша)
-            minioService.createFolder(userDetails.getUsername(), path, newFolderName);
+            validateInputName(newFolderName);
+            minioService.createFolder(userDetails.getUsername(), path, newFolderName.strip());
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute("errorMessage", "Failed to create folder. " + e.getMessage());
         }
@@ -90,7 +90,8 @@ public class FileStorageController {
                                RedirectAttributes redirectAttributes) {
         //TODO валидацию для newFolderName (отсутствие слэша)
         try {
-            minioService.renameFolder(userDetails.getUsername(), path, folderToRename, newFolderName);
+            validateInputName(newFolderName);
+            minioService.renameFolder(userDetails.getUsername(), path, folderToRename, newFolderName.strip());
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to rename folder. " + e.getMessage());
@@ -104,7 +105,6 @@ public class FileStorageController {
                                @RequestParam(required = false) String path,
                                @RequestParam("file") MultipartFile file,
                                RedirectAttributes redirectAttributes) {
-        //TODO валидацию для имени файла (отсутствие слэша)
         try {
             minioService.uploadFile(userDetails.getUsername(), path, file);
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
@@ -138,7 +138,8 @@ public class FileStorageController {
                                RedirectAttributes redirectAttributes) {
         //TODO валидацию для newFileName (отсутствие слэша)
         try {
-            minioService.renameFile(userDetails.getUsername(), path, fileToRename, newFileName);
+            validateInputName(newFileName);
+            minioService.renameFile(userDetails.getUsername(), path, fileToRename, newFileName.strip());
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to rename file. " + e.getMessage());
@@ -157,7 +158,7 @@ public class FileStorageController {
             minioService.uploadFolder(userDetails.getUsername(), path, folderName, files);
         } catch (Exception e) { //TODO показывать message только для кастомных исключений
             redirectAttributes.addFlashAttribute(
-                    "errorMessage", "Failed to upload file: " + e.getMessage());
+                    "errorMessage", "Failed to upload folder. " + e.getMessage());
         }
 
         return redirectByPath(path);
@@ -223,7 +224,7 @@ public class FileStorageController {
     public String search(@AuthenticationPrincipal UserDetails userDetails,
                          Model model,
                          @RequestParam(required = false) String searchQuery) {
-        model.addAttribute("items", minioService.searchItems(userDetails.getUsername(), searchQuery));
+        model.addAttribute("items", minioService.searchItems(userDetails.getUsername(), searchQuery.strip()));
         model.addAttribute("searchQuery", searchQuery);
 
         return "search";
@@ -238,5 +239,23 @@ public class FileStorageController {
             return "redirect:/?path=" + URLEncoder.encode(path, StandardCharsets.UTF_8);
         }
         return "redirect:/";
+    }
+
+    private void validateInputName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Name cannot be empty");
+        }
+        if (name.length() > 60) {
+            throw new IllegalArgumentException("Name cannot be longer than 60 characters");
+        }
+        String forbiddenChars = "/<>:\"?\\|*\0";
+        for (char ch : forbiddenChars.toCharArray()) {
+            if (name.indexOf(ch) != -1) {
+                throw new IllegalArgumentException("Name contains invalid character: " + ch);
+            }
+        }
+        if (name.endsWith(".")) {
+            throw new IllegalArgumentException("Name cannot end with a dot");
+        }
     }
 }
