@@ -24,5 +24,28 @@ public record StorageItem(String relativePath, boolean isFolder, long size) {
         int lastSlashIndex = pathWithName.lastIndexOf('/');
 
         return relativePath.substring(0, lastSlashIndex + 1);
-    } // TODO сделать метод для отображения размера файла в нормальном виде.
+    }
+
+    public String getFormattedSize() {
+        if (isFolder) {
+            return "-";
+        }
+
+        if (size < 1024) {
+            return size + " B"; // Байты
+        }
+
+        double sizeInKB = size / 1024.0;
+        if (sizeInKB < 1024) {
+            return String.format("%.1f KB", sizeInKB);
+        }
+
+        double sizeInMB = sizeInKB / 1024.0;
+        if (sizeInMB < 1024) {
+            return String.format("%.1f MB", sizeInMB);
+        }
+
+        double sizeInGB = sizeInMB / 1024.0;
+        return String.format("%.1f GB", sizeInGB);
+    }
 }

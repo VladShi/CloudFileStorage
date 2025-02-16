@@ -84,7 +84,7 @@
                         <span class="file-icon"><i class="fa-regular fa-file-lines"></i></span>
                         <a style="font-weight: lighter; color: #8597c8" th:href="@{/(path=${item.getParentPath()})}" th:text="${item.getParentPath()}"></a><span style="font-weight: bold; color: #f1f1f1; margin-left: 2px" th:text="${item.getName()}"></span>
                     </td>
-                    <td class="size-column" th:text="${item.size() + ' bytes'}"></td>
+                    <td class="size-column" th:text="${item.getFormattedSize()}"></td>
                     <td class="actions-column">
                         <div class="actions">
                             <form th:action="@{/download-file}" method="get">

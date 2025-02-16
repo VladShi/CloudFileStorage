@@ -124,7 +124,7 @@
                             <span class="file-icon"><i class="fa-regular fa-file-lines"></i></span>
                             <span th:text="${item.getName()}"></span>
                         </td>
-                        <td class="size-column" th:text="${item.size() + ' bytes'}"></td>
+                        <td class="size-column" th:text="${item.getFormattedSize()}"></td>
                         <td class="actions-column">
                             <div class="actions">
                                 <form th:action="@{/download-file}" method="get">

@@ -322,11 +322,11 @@ a:hover {
 
 .file-table .size-column {
     text-align: right;
-    width: 140px; /* Фиксированная ширина для столбца Size */
+    width: 110px; /* Фиксированная ширина для столбца Size */
 }
 
 .file-table .actions-column {
-    width: 100px; /* Фиксированная ширина для столбца Actions */
+    width: 108px; /* Фиксированная ширина для столбца Actions */
     text-align: center;
 }
 
