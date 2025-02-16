@@ -23,6 +23,15 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
 
+  redis:
+    image: redis:8.0-M03
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
 volumes:
   mysql_data:
   minio_data:
+  redis_data:
