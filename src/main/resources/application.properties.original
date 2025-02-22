@@ -1,9 +1,9 @@
 spring.application.name=cloud-file-storage
 
 # Example: jdbc:mysql://localhost:3306/mydatabase
-spring.datasource.url=jdbc:mysql://localhost:3306/mydatabase
-spring.datasource.username=
-spring.datasource.password=
+spring.datasource.url=jdbc:mysql://${MYSQL_HOST:localhost}:3306/${MYSQL_DATABASE}
+spring.datasource.username=${MYSQL_USER}
+spring.datasource.password=${MYSQL_PASSWORD}
 
 spring.jpa.hibernate.ddl-auto=update
 
@@ -14,17 +14,17 @@ spring.flyway.baseline-on-migrate=true
 # ============================================
 # MinIO configuration
 # ============================================
-minio.endpoint=http://localhost:9000
-minio.accessKey=
-minio.secretKey=
-minio.bucket.users=users-bucket
+minio.endpoint=${MINIO_ENDPOINT}
+minio.accessKey=${MINIO_ROOT_USER}
+minio.secretKey=${MINIO_ROOT_PASSWORD}
+minio.bucket.users=${MINIO_BUCKET_USERS}
 
  ============================================
 # Redis configuration
 # ============================================
-spring.data.redis.host=localhost
-spring.data.redis.port=6379
-spring.data.redis.password=
+spring.data.redis.host=${REDIS_HOST:localhost}
+spring.data.redis.port=${REDIS_PORT:6379}
+spring.data.redis.password=${REDIS_PASSWORD}
 spring.data.redis.timeout=2000
 
 # Spring Session configuration

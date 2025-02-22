@@ -6,11 +6,17 @@ import io.minio.messages.Item;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.multipart.MultipartFile;
+import org.testcontainers.containers.MinIOContainer;
+import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import ru.vladshi.cloudfilestorage.BaseTestcontainersForTest;
+import org.testcontainers.utility.DockerImageName;
 import ru.vladshi.cloudfilestorage.dto.StorageItem;
 import ru.vladshi.cloudfilestorage.exception.FileAlreadyExistsInStorageException;
 import ru.vladshi.cloudfilestorage.exception.FileNotFoundInStorageException;
@@ -27,9 +33,15 @@ import java.util.zip.ZipInputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(classes = {
+        MinioServiceImpl.class,
+        MinioServiceImplTest.MinioClientConfig.class
+        }, properties = {
+        "spring.flyway.enabled=false",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration"
+})
 @Testcontainers
-public class MinioServiceImplTest extends BaseTestcontainersForTest {
+public class MinioServiceImplTest {
 
     @Autowired
     private MinioService minioService;
@@ -37,6 +49,7 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
     @Autowired
     private MinioClient minioClient;
 
+    protected final static String TEST_BUCKET_NAME = "test-bucket";
     private static final String TEST_USER_PREFIX = "testuser";
 
     private static final String ROOT_FOLDER_PATH = "";
@@ -58,6 +71,41 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
             "text/plain",
             TEST_FILE_CONTENT.getBytes()
     );
+
+    private static final String MINIO_IMAGE = "minio/minio:RELEASE.2024-12-18T13-15-44Z";
+
+    @Container
+    protected static final MinIOContainer minioContainer = new MinIOContainer(DockerImageName.parse(MINIO_IMAGE))
+//            .withReuse(true) // убрать после создания тестов, вернуть управление @Container
+            .withUserName("minioadmin")
+            .withPassword("minioadmin")
+            .withExposedPorts(9000)
+//            .withCreateContainerCmdModifier(
+//                    cmd -> cmd.withName("minio-test"))
+    ;
+
+    @TestConfiguration
+    static class MinioClientConfig {
+        @Bean
+        public MinioClient minioClient() {
+            return MinioClient.builder()
+                    .endpoint("http://" + minioContainer.getHost() + ":" + minioContainer.getMappedPort(9000))
+                    .credentials(minioContainer.getUserName(), minioContainer.getPassword())
+                    .build();
+        }
+    }
+
+    @DynamicPropertySource
+    static void registerProperties(DynamicPropertyRegistry registry) {
+
+//        minioContainer.start(); // убрать после создания тестов, вернуть управление @Container
+
+        String endpoint = "http://" + minioContainer.getHost() + ":" + minioContainer.getMappedPort(9000);
+        registry.add("minio.endpoint", () -> endpoint);
+        registry.add("minio.accessKey", minioContainer::getUserName);
+        registry.add("minio.secretKey", minioContainer::getPassword);
+        registry.add("minio.bucket.users", () -> TEST_BUCKET_NAME);
+    }
 
     @BeforeEach
     public void beforeEach() {
@@ -125,9 +173,20 @@ public class MinioServiceImplTest extends BaseTestcontainersForTest {
 
         assertTrue(folderExists(TEST_USER_PREFIX + FOLDER_0_LVL_PATH), "Папка должна быть создана в basePath");
 
-        List<StorageItem> items = minioService.getItems(TEST_USER_PREFIX, FOLDER_0_LVL_NAME);
+        List<StorageItem> items = minioService.getItems(TEST_USER_PREFIX, FOLDER_0_LVL_PATH);
 
         assertTrue(items.isEmpty(), "Список должен быть пустым, если в папке нет папок и файлов");
+    }
+
+    @Test
+    @DisplayName("Запрашиваем методом getItems содержимое несуществующей папки")
+    void shouldThrowExceptionWhenListedFolderDoesNotExist() {
+
+        assertFalse(folderExists(TEST_USER_PREFIX + NON_EXISTENT_FOLDER_PATH), "Папка не должна существовать");
+
+        assertThrows(FolderNotFoundException.class,
+                () -> minioService.getItems(TEST_USER_PREFIX, NON_EXISTENT_FOLDER_PATH),
+                "Должно выбрасываться исключение при запросе содержимого несуществующей папки");
     }
 
     @Test
