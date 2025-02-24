@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -484,7 +485,7 @@ public class MinioServiceImpl implements MinioService {
         }
         if (!fullPrefix.endsWith("/")) {
             fullPrefix += "/";
-        }
+        } // TODO вынести общий для многих методов функционал валидации и составления fullPrefix
 
         String fullUploadedFolderPath = fullPrefix + uploadedFolderName + "/";
 
@@ -515,9 +516,8 @@ public class MinioServiceImpl implements MinioService {
                 // Полный путь к загружаемому файлу
                 String fileFullPath = fullPrefix + file.getOriginalFilename();
 
-                // Добавляем родительскую папку файла в список папок для создания
-                String pathToFileParentFolder = fileFullPath.substring(0, fileFullPath.lastIndexOf("/") + 1);
-                foldersToCreate.add(pathToFileParentFolder);
+                // Добавляем родительские папки файла в список папок для создания
+                addParentFolders(foldersToCreate, fileFullPath);
 
                 // Извлекаем только имя файла (без пути)
                 String fileName = extractNameFromPath(file.getOriginalFilename());
@@ -534,7 +534,7 @@ public class MinioServiceImpl implements MinioService {
                 ));
             }
 
-            for (String path : foldersToCreate) { // TODO не создаются пустые файлы(папки) для промежуточных пустых папок
+            for (String path : foldersToCreate) {
                 objectsToUpload.add(new SnowballObject(
                         path,
                         new ByteArrayInputStream(new byte[0]),
@@ -564,6 +564,17 @@ public class MinioServiceImpl implements MinioService {
                     // log.error("Error deleting temporary file: {}", tempFile.getAbsolutePath(), e);
                 }
             }
+        }
+    }
+
+    private static void addParentFolders(Set<String> foldersToCreate, String fileFullPath) {
+        Path path = Paths.get(fileFullPath).getParent();
+        while (path != null) {
+            String folderPath = path + "/";
+            if (!foldersToCreate.add(folderPath)) {
+                break;
+            }
+            path = path.getParent();
         }
     }
 
