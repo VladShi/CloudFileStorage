@@ -938,7 +938,8 @@ public class MinioServiceImplTest {
 
         assertThrows(
                 FolderNotFoundException.class,
-                () -> minioService.downloadFolder(TEST_USER_PREFIX, folderPath, folderName)
+                () -> minioService.downloadFolder(TEST_USER_PREFIX, folderPath, folderName),
+                "Должна быть выброшена ошибка, если скачиваемая папка не существует "
         );
     }
 
@@ -950,6 +951,21 @@ public class MinioServiceImplTest {
         String folderName = "special-chars-folder";
         String fullFolderPath = TEST_USER_PREFIX + folderPath + folderName + "/";
 
+        // Добавляем пустые объекты для папок
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(TEST_USER_PREFIX + folderPath)
+                        .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                        .build()
+        );
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(TEST_BUCKET_NAME)
+                        .object(fullFolderPath)
+                        .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
+                        .build()
+        );
         // Загружаем тестовые файлы в MinIO
         minioClient.putObject(
                 PutObjectArgs.builder()
@@ -972,14 +988,6 @@ public class MinioServiceImplTest {
                         .object(fullFolderPath + "file#with#special#chars.txt")
                         .stream(new ByteArrayInputStream("file#with#special#chars content".getBytes()),
                                 "file#with#special#chars content".getBytes().length, -1)
-                        .build()
-        );
-        // Добавляем пустые объекты для папки
-        minioClient.putObject(
-                PutObjectArgs.builder()
-                        .bucket(TEST_BUCKET_NAME)
-                        .object(fullFolderPath)
-                        .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
                         .build()
         );
 
