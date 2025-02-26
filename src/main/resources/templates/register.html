@@ -7,27 +7,29 @@
 </head>
 <body>
 <div class="content">
-    <h1>Register</h1>
+    <div class="center-container">
+        <h1>Register</h1>
 
-    <form th:action="@{/auth/register}" method="post" th:object="${userDto}">
-        <div>
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" th:field="*{username}" required/>
-            <div style="color:red;" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Username Error</div>
-        </div>
+        <form th:action="@{/auth/register}" method="post" th:object="${userDto}">
+            <div>
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" th:field="*{username}" required/>
+                <div style="color:red;" th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Username Error</div>
+            </div>
+            <br>
+            <div>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" th:field="*{password}" required/>
+                <div style="color:red;" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Password Error</div>
+            </div>
+            <br>
+            <div>
+                <button type="submit">Register</button>
+            </div>
+        </form>
         <br>
-        <div>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" th:field="*{password}" required/>
-            <div style="color:red;" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Password Error</div>
-        </div>
-        <br>
-        <div>
-            <button type="submit">Register</button>
-        </div>
-    </form>
-    <br>
-    <p>Already have an account? <a th:href="@{/auth/login}">Login here</a></p>
+        <p>Already have an account? <a th:href="@{/auth/login}">Login here</a></p>
+    </div>
 </div>
 </body>
 </html>

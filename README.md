@@ -1,17 +1,16 @@
 Проект “Облачное хранилище файлов”
 ===============================================================================================
 
-Многопользовательское файловое облако. Пользователи сервиса могут использовать его для загрузки и хранения файлов. 
-Источником вдохновения для проекта является Google Drive.
+Многопользовательское облачное хранилище файлов. Пользователи могут регистрироваться, загружать, скачивать, удалять и переименовывать свои файлы, а также организовывать их в папки. Источником вдохновения для проекта является Google Drive.
 
-(Пет-проект написанный для освоения, закрепления навыков в Java, Spring и других технологиях)
+(Пет-проект, написанный для освоения и закрепления навыков в Java, Spring Boot и других технологиях)
 
 Оглавление
 ----------
 
 1. [Использованные инструменты / технологии](#использованные-инструменты--технологии)
 2. [Интерфейс приложения](#интерфейс-приложения)
-3. [Диаграмма базы данных](#диаграмма-базы-данных)
+3. [Базы данных](#базы-данных)
 4. [Требования приложения](#требования-приложения)
 5. [Инструкция по запуску приложения](#инструкция-по-запуску-приложения)
 6. [Техническое задание](#техническое-задание)
@@ -20,22 +19,75 @@
 
 ### Backend
 
+![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=java&logoColor=ED8B00&labelColor=333333) &nbsp;
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=6DB33F&labelColor=333333) &nbsp;
+![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?style=for-the-badge&logo=spring-security&logoColor=6DB33F&labelColor=333333) &nbsp;
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=4479A1&labelColor=333333) &nbsp;
+![MinIO](https://img.shields.io/badge/MinIO-FF5733?style=for-the-badge&logo=minio&logoColor=FF5733&labelColor=333333) &nbsp;
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=DC382D&labelColor=333333) &nbsp;
+![Flyway](https://img.shields.io/badge/Flyway-CC0200?style=for-the-badge&logo=flyway&logoColor=CC0200&labelColor=333333) &nbsp;
+![Lombok](https://img.shields.io/badge/Lombok-1A80C3?style=for-the-badge&logo=lombok&logoColor=1A80C3&labelColor=333333) &nbsp;
+![Maven](https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apachemaven&logoColor=C71A36&labelColor=333333) &nbsp;
+![SLF4J/Logback](https://img.shields.io/badge/SLF4J/Logback-2C2255?style=for-the-badge&logo=slf4j&logoColor=2C2255&labelColor=333333)
+
 ### Testing
 
+![JUnit5](https://img.shields.io/badge/JUnit5-25A162?style=for-the-badge&logo=junit5&logoColor=25A162&labelColor=333333) &nbsp;
+![Testcontainers](https://img.shields.io/badge/Testcontainers-000000?style=for-the-badge&logo=testcontainers&logoColor=000000&labelColor=333333)
+
 ### Frontend
+
+![Thymeleaf](https://img.shields.io/badge/Thymeleaf-005F0F?style=for-the-badge&logo=thymeleaf&logoColor=005F0F&labelColor=333333) &nbsp;
+![HTML](https://img.shields.io/badge/HTML-E34F26?style=for-the-badge&logo=html5&logoColor=E34F26&labelColor=333333) &nbsp;
+![CSS](https://img.shields.io/badge/CSS-1572B6?style=for-the-badge&logo=css3&logoColor=1572B6&labelColor=333333) &nbsp;
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=F7DF1E&labelColor=333333)
+
+### Инфраструктура
+
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=2496ED&labelColor=333333) &nbsp;
+![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=F05032&labelColor=333333) &nbsp;
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=2088FF&labelColor=333333)
 
 ## Интерфейс приложения
 
 ### Главная страница
+![index-page](assets/index-page.png)
+URL - '/'
+- Отображает список файлов и папок пользователя в виде файловой структуры (аналогично Windows Explorer).
+- Поддерживает загрузку файлов и папок (POST-запросы на `/upload-file`, `/upload-folder`), скачивание (GET-запросы на `/download-file`, `/download-folder`), удаление (POST-запросы на `/delete-folder`, `/delete-file`), переименование (POST-запросы на `/rename-folder`, `/rename-file`) и создание папки (POST-запросы на `/create-folder`).
+- Навигация по папкам через GET-параметр `path` (например, `/?path=/folder/subfolder`).
 
-## Диаграмма базы данных
+### Страница поиска
+![index-page](assets/search.png)
+URL - '/search'
+- Поиск файлов по названию с помощью GET-запроса `?query=<search-term>`.
 
+### Страница входа
+URL - '/auth/login'
+- Форма входа с POST-запросом на `/auth/login` для аутентификации.
+
+### Страница регистрации
+URL - '/auth/register'
+- Форма регистрации с POST-запросом на `/auth/register` для создания пользователя.
+
+### Страница ошибок
+![index-page](assets/error-page.png)
+URL - '/error'
+- Отображает ошибки (например, 400, 403, 404, 500) с кастомными сообщениями и тёмной темой.
+
+## Базы данных
+
+- Таблица `users`: Хранит данные пользователей (id, username, password).
+- Используется MySQL для хранения пользовательских данных и Redis для сессий.
 
 ## Требования приложения
 
 + Java 21+
 + Apache Maven
-+ Tomcat 10+
++ MySQL 9.1+
++ MinIO (для хранения файлов)
++ Redis (для управления сессиями)
++ Docker (для запуска зависимостей)
 
 ## Инструкция по запуску приложения
 
@@ -45,25 +97,70 @@
     - Откройте терминал или командную строку.
     - Выполните команду:
       ```sh
-      git clone https://github.com/VladShi/weather-tracker.git
+      git clone https://github.com/VladShi/cloudfilestorage.git
       ```
     - Перейдите в директорию проекта:
       ```sh
-      cd weather-tracker
+      cd cloudfilestorage
       ```
 
 ### Настройка проекта
 
 1. **Настройка конфигурационного файла**:
     - В корне проекта находится файл `application.properties.origin`.
-    - Переименуйте этот файл в `application.properties`.
-    - Откройте файл `application.properties` и заполните его данными вашей базы данных.
+    - Переименуйте его в `application.properties`:
+      ```sh
+      cp application.properties.origin application.properties
+      ```
+    - Откройте файл `application.properties` и убедитесь, что он настроен для чтения переменных из `.env` (если используются placeholders вроде `${MYSQL_HOST}`). Обычно это не требуется, так как Spring Boot автоматически подтягивает переменные окружения.
 
+2. **Настройка переменных окружения**:
+    - В корне проекта находится файл `.env.example`, содержащий пример необходимых данных.
+    - Создайте файл `.env` на основе `.env.example`:
+      ```sh
+      cp .env.example .env
+      ```
+    - Откройте `.env` и заполните его необходимыми данными.
+    - Эти переменные будут использованы `docker-compose.yml` и `application.properties`.
 
+3. **Запуск зависимостей через Docker**:
+    - Убедитесь, что Docker и Docker Compose установлены.
+    - В корне проекта находится файл `docker-compose.yml`, который запускает MySQL, MinIO и Redis.
+    - Выполните команду для запуска сервисов в фоновом режиме:
+      ```sh
+      docker-compose up -d
+      ```
+    - Проверьте, что сервисы работают:
+      ```sh
+      docker-compose ps
+      ```
 
-### Запуск приложения в IntelliJ IDEA
+### Сборка JAR-файла
+
+1. **Сборка с помощью Maven**:
+    - Перейдите в корневую папку проекта, где находится файл `pom.xml`.
+    - Выполните команду:
+      ```sh
+      mvn clean package
+      ```
+    - После успешной сборки JAR-файл будет создан в директории `/target` (например, `/target/cloudfilestorage-1.0.jar`).
 
 ### Запуск приложения
+
+1. **Запуск JAR-файла**:
+    - Выполните команду:
+      ```sh
+      java -jar target/cloudfilestorage-1.0.jar
+      ```
+    - Приложение будет доступно по адресу `http://localhost:8080`.
+
+2. **Запуск в IntelliJ IDEA**:
+    - Откройте проект в IntelliJ IDEA.
+    - Настройте конфигурацию запуска: выберите `Spring Boot` и укажите главный класс `CloudFileStorageApplication`.
+    - Нажмите `Run`.
+
+### CI/CD
+- Проект использует GitHub Actions для автоматизации сборки и тестирования. Workflow-файлы находятся в `.github/workflows/`.
 
 Техническое задание
 ==

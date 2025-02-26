@@ -69,7 +69,7 @@ a:hover {
     flex-direction: column;
     justify-content: center; /* Центрирование по горизонтали */
     align-items: center;     /* Центрирование по вертикали */
-    height: 100vh;           /* Занимает всю высоту экрана */
+    height: 60vh;           /* Занимает всю высоту экрана */
     text-align: center;      /* Центрирование текста внутри контейнера */
 }
 
