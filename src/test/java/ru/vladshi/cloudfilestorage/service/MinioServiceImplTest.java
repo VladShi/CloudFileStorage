@@ -18,10 +18,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import ru.vladshi.cloudfilestorage.dto.StorageItem;
-import ru.vladshi.cloudfilestorage.exception.FileAlreadyExistsInStorageException;
-import ru.vladshi.cloudfilestorage.exception.FileNotFoundInStorageException;
-import ru.vladshi.cloudfilestorage.exception.FolderAlreadyExistsException;
-import ru.vladshi.cloudfilestorage.exception.FolderNotFoundException;
+import ru.vladshi.cloudfilestorage.exception.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -138,7 +135,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Проверяем, что метод getItems возвращает пустой список, если у пользователя нет папок и файлов")
-    void shouldReturnEmptyListIfUserHasNoFoldersAndFiles() {
+    void shouldReturnEmptyListIfUserHasNoFoldersAndFiles() throws Exception {
 
         Iterable<Result<Item>> results = minioClient.listObjects(
                 ListObjectsArgs.builder()
@@ -157,7 +154,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Создание папки в корневой папке пользователя")
-    void shouldCreateFolderInRootUserPath() {
+    void shouldCreateFolderInRootUserPath() throws Exception {
         // Сначала создаем папку
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
@@ -167,7 +164,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Проверяем, что метод getItems возвращает пустой список, если в папке нет папок и файлов")
-    void shouldReturnEmptyListIfFolderHasNoFoldersAndFiles() {
+    void shouldReturnEmptyListIfFolderHasNoFoldersAndFiles() throws Exception {
         // Сначала создаем папку
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
@@ -191,7 +188,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Создание вложенной папки на два уровня")
-    void shouldCreateNestedFolder() {
+    void shouldCreateNestedFolder() throws Exception {
         // Сначала создаем промежуточную папку
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
@@ -206,7 +203,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Проверяем, что метод getItems возвращает вложенную папку, если в папке есть одна вложенная папка")
-    void shouldReturnListWithInnerFolderIfFolderHasInnerFolder() {
+    void shouldReturnListWithInnerFolderIfFolderHasInnerFolder() throws Exception {
         // Создаем папку верхнего уровня
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
         // Создаем вложенную папку
@@ -236,7 +233,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Попытка создания папки, которая уже существует")
-    void shouldThrowExceptionWhenFolderAlreadyExists() {
+    void shouldThrowExceptionWhenFolderAlreadyExists() throws Exception {
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
         assertTrue(folderExists(TEST_USER_PREFIX + FOLDER_0_LVL_PATH), "Папка должна быть создана");
@@ -252,7 +249,7 @@ public class MinioServiceImplTest {
 
         String nullFolderName = null;
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InputNameValidationException.class,
                 () -> minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, nullFolderName),
                 "Должно выбрасываться исключение при попытке создать папку со значением null для имени");
     }
@@ -263,14 +260,14 @@ public class MinioServiceImplTest {
 
         String folderWithEmptyName = "";
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InputNameValidationException.class,
                 () -> minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, folderWithEmptyName),
                 "Должно выбрасываться исключение при попытке создать папку с пустым именем");
     }
 
     @Test
     @DisplayName("Удаление пустой папки")
-    void shouldDeleteEmptyFolder() {
+    void shouldDeleteEmptyFolder() throws Exception {
         // Создаем папку
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
@@ -284,7 +281,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Удаление папки с вложенными объектами")
-    void shouldDeleteFolderWithNestedObjects() {
+    void shouldDeleteFolderWithNestedObjects() throws Exception {
         // Создаем папку и вложенные объекты
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
         minioService.createFolder(TEST_USER_PREFIX, FOLDER_0_LVL_PATH , FOLDER_1_LVL_NAME);
@@ -306,7 +303,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Удаление папки с двумя уровнями вложенности")
-    void shouldDeleteFolderWithTwoLevelsOfNesting() {
+    void shouldDeleteFolderWithTwoLevelsOfNesting() throws Exception {
         // Создаем папку и вложенные объекты
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
         minioService.createFolder(TEST_USER_PREFIX, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME);
@@ -330,7 +327,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Удаление вложенной папки и проверка существования родительской папки")
-    void shouldDeleteNestedFolderButKeepParentFolder() {
+    void shouldDeleteNestedFolderButKeepParentFolder() throws Exception {
         // Создаем папку и вложенные объекты
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
         minioService.createFolder(TEST_USER_PREFIX, FOLDER_0_LVL_PATH, FOLDER_1_LVL_NAME);
@@ -362,7 +359,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Переименование пустой папки в корневой папке пользователя")
-    void shouldRenameFolderWithEmptyPath() {
+    void shouldRenameFolderWithEmptyPath() throws Exception {
         String renamedFolderName = "renamedFolder";
         String renamedFolderPath = "/" + renamedFolderName + "/";
 
@@ -379,7 +376,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Переименование пустой вложенной папки")
-    void shouldRenameEmptyFolder() {
+    void shouldRenameEmptyFolder() throws Exception {
         String renamedFolderName = "renamedEmptyFolder";
         String renamedFolderPath = FOLDER_0_LVL_PATH + renamedFolderName + "/";
 
@@ -398,7 +395,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Попытка переименования несуществующей папки")
-    void shouldThrowExceptionWhenRenamingNonExistentFolder() {
+    void shouldThrowExceptionWhenRenamingNonExistentFolder() throws Exception {
 
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
@@ -410,7 +407,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Попытка переименования папки в уже существующую папку")
-    void shouldThrowExceptionWhenRenamingToExistingFolder() {
+    void shouldThrowExceptionWhenRenamingToExistingFolder() throws Exception {
         String existingFolderName = "existingFolder";
 
         // Создаем родительскую папку и две вложенные папки
@@ -427,7 +424,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Переименование папки с вложенными объектами")
-    void shouldRenameFolderWithNestedFolders() {
+    void shouldRenameFolderWithNestedFolders() throws Exception {
         String renamedFolderName = "renamed-folder";
         String renamedFolderPath = FOLDER_0_LVL_PATH + renamedFolderName + "/";
 
@@ -457,7 +454,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Загрузка файла в корневую папку пользователя")
-    void shouldUploadFileToBaseFolder() {
+    void shouldUploadFileToBaseFolder() throws Exception {
         minioService.uploadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, MULTIPART_TEST_FILE);
 
         String fullFilePath = TEST_USER_PREFIX + "/" + TEST_FILE_NAME;
@@ -466,7 +463,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Загрузка файла во вложенную папку")
-    void shouldUploadFileToNestedFolder() {
+    void shouldUploadFileToNestedFolder() throws Exception {
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
         minioService.uploadFile(TEST_USER_PREFIX, FOLDER_0_LVL_PATH, MULTIPART_TEST_FILE);
@@ -477,7 +474,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Попытка загрузки файла, который уже существует")
-    void shouldThrowExceptionWhenUploadingExistingFile() {
+    void shouldThrowExceptionWhenUploadingExistingFile() throws Exception {
         // Загружаем файл в первый раз
         minioService.uploadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, MULTIPART_TEST_FILE);
 
@@ -520,18 +517,14 @@ public class MinioServiceImplTest {
         );
 
         // Пытаемся загрузить файл с некорректным именем
-        Exception exception = assertThrows(RuntimeException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> minioService.uploadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, invalidNameFile),
                 "Должно выбрасываться исключение при попытке загрузить файл с некорректным именем");
-
-        // Проверяем, что причина исключения - IllegalArgumentException
-        assertInstanceOf(IllegalArgumentException.class, exception.getCause(),
-                "Причина исключения должна быть IllegalArgumentException");
     }
 
     @Test
     @DisplayName("Удаление существующего файла")
-    void shouldDeleteExistingFile() {
+    void shouldDeleteExistingFile() throws Exception {
         minioService.uploadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, MULTIPART_TEST_FILE);
 
         String fullFilePath = TEST_USER_PREFIX + "/" + TEST_FILE_NAME;
@@ -560,14 +553,14 @@ public class MinioServiceImplTest {
     void shouldThrowExceptionWhenDeletingFileWithEmptyName() {
         String emptyFileName = "";
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InputNameValidationException.class,
                 () -> minioService.deleteFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, emptyFileName),
                 "Должно выбрасываться исключение при попытке удалить файл с пустым именем");
     }
 
     @Test
     @DisplayName("Удаление файла из вложенной папки")
-    void shouldDeleteFileFromNestedFolder() {
+    void shouldDeleteFileFromNestedFolder() throws Exception {
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
 
         minioService.uploadFile(TEST_USER_PREFIX, FOLDER_0_LVL_PATH, MULTIPART_TEST_FILE);
@@ -586,18 +579,14 @@ public class MinioServiceImplTest {
         String invalidFileName = "../invalid-file.txt";
 
         // Пытаемся удалить файл с некорректным именем
-        Exception exception = assertThrows(RuntimeException.class,
+        assertThrows(InputNameValidationException.class,
                 () -> minioService.deleteFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, invalidFileName),
                 "Должно выбрасываться исключение при попытке удалить файл с некорректным именем");
-
-        // Проверяем, что причина исключения - IllegalArgumentException
-        assertInstanceOf(IllegalArgumentException.class, exception.getCause(),
-                "Причина исключения должна быть IllegalArgumentException");
     }
 
     @Test
     @DisplayName("Переименование существующего файла")
-    void shouldRenameExistingFile() {
+    void shouldRenameExistingFile() throws Exception {
         minioService.uploadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, MULTIPART_TEST_FILE);
 
         String fullOldFilePath = TEST_USER_PREFIX + "/" + TEST_FILE_NAME;
@@ -624,7 +613,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Попытка переименования файла в уже существующий файл")
-    void shouldThrowExceptionWhenRenamingToExistingFile() {
+    void shouldThrowExceptionWhenRenamingToExistingFile() throws Exception {
         String existingFileName = "test-existing-file.txt";
 
         minioService.uploadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, MULTIPART_TEST_FILE);
@@ -650,14 +639,14 @@ public class MinioServiceImplTest {
     void shouldThrowExceptionWhenRenamingFileWithEmptyName() {
         String emptyFileName = "";
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InputNameValidationException.class,
                 () -> minioService.renameFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, emptyFileName, RENAMED_FILE_NAME),
                 "Должно выбрасываться исключение при попытке переименовать файл с передачей пустого имени в параметр");
     }
 
     @Test
     @DisplayName("Попытка переименования файла с пустым новым именем")
-    void shouldThrowExceptionWhenRenamingFileWithEmptyNewName() {
+    void shouldThrowExceptionWhenRenamingFileWithEmptyNewName() throws Exception {
         minioService.uploadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, MULTIPART_TEST_FILE);
 
         String fullOldPath = TEST_USER_PREFIX + "/" + TEST_FILE_NAME;
@@ -665,14 +654,14 @@ public class MinioServiceImplTest {
 
         String emptyNewFileName = "";
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(InputNameValidationException.class,
                 () -> minioService.renameFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, TEST_FILE_NAME, emptyNewFileName),
                 "Должно выбрасываться исключение при попытке переименовать файл с пустым новым именем");
     }
 
     @Test
     @DisplayName("Переименование файла во вложенной папке")
-    void shouldRenameFileInNestedFolder() {
+    void shouldRenameFileInNestedFolder() throws Exception {
         minioService.createFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, FOLDER_0_LVL_NAME);
         minioService.uploadFile(TEST_USER_PREFIX, FOLDER_0_LVL_PATH, MULTIPART_TEST_FILE);
 
@@ -690,7 +679,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Загрузка папки в корневую папку пользователя")
-    void shouldUploadFolderToRoot() {
+    void shouldUploadFolderToRoot() throws Exception {
         String testFileName = "file1.txt";
         String testFilePath = FOLDER_0_LVL_NAME + "/" + testFileName;
         MultipartFile multipartTestFile = new MockMultipartFile(
@@ -731,7 +720,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Загрузка папки во вложенную папку")
-    void shouldUploadFolderToNestedFolder() {
+    void shouldUploadFolderToNestedFolder() throws Exception {
         // Создаем тестовые файлы
         String folderName = "uploaded-folder";
         String file1Name = "file1.txt";
@@ -801,7 +790,7 @@ public class MinioServiceImplTest {
 
     @Test
     @DisplayName("Попытка загрузки папки с уже существующим именем")
-    void shouldThrowExceptionWhenUploadingFolderWithExistingName(){
+    void shouldThrowExceptionWhenUploadingFolderWithExistingName() throws Exception {
         // Создаем тестовые файлы
         String folderName = "uploaded-folder";
         String file1Name = "file1.txt";

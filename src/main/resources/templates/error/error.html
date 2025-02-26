@@ -7,10 +7,10 @@
 </head>
 <body>
     <div class="center-container">
-        <h1>Error Page</h1>
-        <p>An unexpected error occurred.</p>
+        <h1 th:text="'Error ' + ${errorCode ?: 'page'}">Error</h1>
+        <p th:text="${errorMessage ?: 'An unexpected error occurred.'}">An unexpected error occurred.</p>
         <br>
-        <a th:href="@{/}" class="btn-link">Go Home</a>
+        <a th:href="@{/}" class="btn-link" th:text="'Back to Home'">Back to Home</a>
     </div>
 </body>
 </html>

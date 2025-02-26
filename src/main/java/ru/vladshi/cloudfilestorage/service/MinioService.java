@@ -8,25 +8,25 @@ import java.util.List;
 
 public interface MinioService {
 
-    List<StorageItem> getItems(String userPrefix, String path);
+    List<StorageItem> getItems(String userPrefix, String path) throws Exception;
 
-    void createFolder(String basePath, String folderPath, String newFolderName);
+    void createFolder(String basePath, String folderPath, String newFolderName) throws Exception;
 
-    void deleteFolder(String basePath, String folderPath, String folderName);
+    void deleteFolder(String basePath, String folderPath, String folderName) throws Exception;
 
-    void renameFolder(String basePath, String folderPath, String oldFolderName, String newFolderName);
+    void renameFolder(String basePath, String folderPath, String oldFolderName, String newFolderName) throws Exception;
 
-    void uploadFile(String basePath, String folderPath, MultipartFile file);
+    void uploadFile(String basePath, String folderPath, MultipartFile file) throws Exception;
 
-    void deleteFile(String basePath, String folderPath, String fileName);
+    void deleteFile(String basePath, String folderPath, String fileName) throws Exception;
 
-    void renameFile(String basePath, String folderPath, String oldFileName, String newFileName);
+    void renameFile(String basePath, String folderPath, String oldFileName, String newFileName) throws Exception;
 
-    void uploadFolder(String basePath, String folderPath, String folderName, MultipartFile[] files);
+    void uploadFolder(String basePath, String folderPath, String folderName, MultipartFile[] files) throws Exception;
 
-    InputStreamResource downloadFile(String basePath, String folderPath, String fileName);
+    InputStreamResource downloadFile(String basePath, String folderPath, String fileName) throws Exception;
 
-    InputStreamResource downloadFolder(String basePath, String folderPath, String folderName);
+    InputStreamResource downloadFolder(String basePath, String folderPath, String folderName) throws Exception;
 
-    List<StorageItem> searchItems(String userPrefix, String query);
+    List<StorageItem> searchItems(String userPrefix, String query) throws Exception;
 }

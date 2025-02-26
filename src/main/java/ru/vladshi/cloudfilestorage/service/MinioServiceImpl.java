@@ -6,6 +6,8 @@ import io.minio.messages.DeleteError;
 import io.minio.messages.DeleteObject;
 import io.minio.messages.Item;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
@@ -30,6 +32,7 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class MinioServiceImpl implements MinioService {
 
+    private static final Logger log = LoggerFactory.getLogger(MinioServiceImpl.class);
     private final MinioClient minioClient;
     private final String usersBucketName;
 
@@ -48,108 +51,95 @@ public class MinioServiceImpl implements MinioService {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(usersBucketName).build());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to initialize bucket for users: {}", usersBucketName, e);
+            throw new RuntimeException("Users bucket initialization failed", e);
         }
     }
 
     @Override
-    public List<StorageItem> getItems(String userPrefix, String path) {
+    public List<StorageItem> getItems(String userPrefix, String path) throws Exception {
         List<StorageItem> items = new ArrayList<>();
 
         String fullPrefix = buildFullPrefix(userPrefix, path);
 
-        try {
-            checkFolderExists(userPrefix, fullPrefix, path);
+        checkFolderExists(userPrefix, fullPrefix, path);
+        /*
+         TODO кажется лишний сетевой запрос. Подумать как избавиться. Если в найденных элементах нету пустого итема
+          отображающего папку то папка не существует. (Только надо тогда убрать startAfter())
+        */
 
-            Iterable<Result<Item>> foundItems = minioClient.listObjects(
-                    ListObjectsArgs.builder()
-                            .bucket(usersBucketName)
-                            .startAfter(fullPrefix)
-                            .prefix(fullPrefix)
-                            .delimiter("/")
-                            .recursive(false)
-                            .build()
-            );
+        Iterable<Result<Item>> foundItems = minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(usersBucketName)
+                        .startAfter(fullPrefix)
+                        .prefix(fullPrefix)
+                        .delimiter("/")
+                        .recursive(false)
+                        .build()
+        );
 
-            for (Result<Item> foundItem : foundItems) {
-                Item item = foundItem.get();
-                String fullItemPath = item.objectName();
-                String relativePath = fullItemPath.substring(userPrefix.length());
-                boolean isFolder = fullItemPath.endsWith("/");
+        for (Result<Item> foundItem : foundItems) {
+            Item item = foundItem.get();
+            String fullItemPath = item.objectName();
+            String relativePath = fullItemPath.substring(userPrefix.length());
+            boolean isFolder = fullItemPath.endsWith("/");
 
-                items.add(new StorageItem(relativePath, isFolder, item.size()));
-            }
-        } catch (FolderNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to list user items", e);
+            items.add(new StorageItem(relativePath, isFolder, item.size()));
         }
 
         return items;
     }
 
     @Override
-    public void createFolder(String userPrefix, String path, String newFolderName) {
+    public void createFolder(String userPrefix, String path, String newFolderName) throws Exception {
         validateInputName(newFolderName);
 
         String fullPrefix = buildFullPrefix(userPrefix, path);
         String fullNewFolderPath = fullPrefix + newFolderName + "/";
 
-        try {
-            checkFolderExists(userPrefix, fullPrefix, path);
+        checkFolderExists(userPrefix, fullPrefix, path);
 
-            checkFolderNotExists(fullNewFolderPath, newFolderName);
+        checkFolderNotExists(fullNewFolderPath);
 
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(usersBucketName)
-                            .object(fullNewFolderPath)
-                            .stream(getEmptyStream(), 0, -1)
-                            .build()
-            );
-        } catch (FolderNotFoundException | FolderAlreadyExistsException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create folder: " + fullNewFolderPath, e);
-        }
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(usersBucketName)
+                        .object(fullNewFolderPath)
+                        .stream(getEmptyStream(), 0, -1)
+                        .build()
+        );
     }
 
     @Override
-    public void deleteFolder(String userPrefix, String path, String folderToDeleteName) {
+    public void deleteFolder(String userPrefix, String path, String folderToDeleteName) throws Exception {
         validateInputName(folderToDeleteName);
 
         String fullPrefix = buildFullPrefix(userPrefix, path);
         String folderToDeleteFullPath = fullPrefix + folderToDeleteName + "/";
 
-        try {
-            Iterable<Result<Item>> foundItems = minioClient.listObjects(
-                    ListObjectsArgs.builder()
-                            .bucket(usersBucketName)
-                            .prefix(folderToDeleteFullPath)
-                            .recursive(true)
-                            .build()
-            );
+        Iterable<Result<Item>> foundItems = minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(usersBucketName)
+                        .prefix(folderToDeleteFullPath)
+                        .recursive(true)
+                        .build()
+        );
 
-            List<DeleteObject> ItemsToDelete = new ArrayList<>();
-            for (Result<Item> item : foundItems) {
-                ItemsToDelete.add(new DeleteObject(item.get().objectName()));
-            }
-
-            if (ItemsToDelete.isEmpty()) {
-                throw new FolderNotFoundException("Folder does not exist: " + path + folderToDeleteName);
-            }
-
-            batchDeleteObjects(userPrefix, ItemsToDelete);
-
-        } catch (FolderNotFoundException | ObjectDeletionException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to delete folder: " + path + folderToDeleteName + "/", e);
+        List<DeleteObject> ItemsToDelete = new ArrayList<>();
+        for (Result<Item> item : foundItems) {
+            ItemsToDelete.add(new DeleteObject(item.get().objectName()));
         }
+
+        if (ItemsToDelete.isEmpty()) {
+            throw new FolderNotFoundException("Folder does not exist: " + path + folderToDeleteName);
+        }
+
+        batchDeleteObjects(userPrefix, ItemsToDelete);
     }
 
     @Override
-    public void renameFolder(String userPrefix, String path, String oldFolderName, String newFolderName) {
+    public void renameFolder(String userPrefix, String path, String oldFolderName, String newFolderName)
+            throws Exception {
         validateInputName(oldFolderName);
         validateInputName(newFolderName);
         if (oldFolderName.equals(newFolderName)) {
@@ -160,53 +150,46 @@ public class MinioServiceImpl implements MinioService {
         String fullOldPath = fullPrefix + oldFolderName + "/";
         String fullNewPath = fullPrefix + newFolderName + "/";
 
-        try {
-            checkFolderNotExists(fullNewPath, newFolderName);
+        checkFolderNotExists(fullNewPath);
 
-            Iterable<Result<Item>> ItemsToRename = minioClient.listObjects(
-                    ListObjectsArgs.builder()
+        Iterable<Result<Item>> ItemsToRename = minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(usersBucketName)
+                        .prefix(fullOldPath)
+                        .recursive(true)
+                        .build()
+        );
+
+        List<DeleteObject> itemsToDelete = new ArrayList<>();
+
+        for (Result<Item> itemToRename : ItemsToRename) {
+            String oldObjectFullName = itemToRename.get().objectName();
+
+            itemsToDelete.add(new DeleteObject(oldObjectFullName));
+
+            String newObjectFullName = fullNewPath + oldObjectFullName.substring(fullOldPath.length());
+
+            minioClient.copyObject(
+                    CopyObjectArgs.builder()
                             .bucket(usersBucketName)
-                            .prefix(fullOldPath)
-                            .recursive(true)
+                            .object(newObjectFullName)
+                            .source(CopySource.builder()
+                                    .bucket(usersBucketName)
+                                    .object(oldObjectFullName)
+                                    .build())
                             .build()
             );
-
-            List<DeleteObject> itemsToDelete = new ArrayList<>();
-
-            for (Result<Item> itemToRename : ItemsToRename) {
-                String oldObjectFullName = itemToRename.get().objectName();
-
-                itemsToDelete.add(new DeleteObject(oldObjectFullName));
-
-                String newObjectFullName = fullNewPath + oldObjectFullName.substring(fullOldPath.length());
-
-                minioClient.copyObject(
-                        CopyObjectArgs.builder()
-                                .bucket(usersBucketName)
-                                .object(newObjectFullName)
-                                .source(CopySource.builder()
-                                        .bucket(usersBucketName)
-                                        .object(oldObjectFullName)
-                                        .build())
-                                .build()
-                );
-            }
-
-            if (itemsToDelete.isEmpty()) {
-                throw new FolderNotFoundException("Folder does not exist: " + path + oldFolderName);
-            }
-
-            batchDeleteObjects(userPrefix, itemsToDelete);
-
-        } catch (FolderNotFoundException | ObjectDeletionException | FolderAlreadyExistsException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to rename folder: " + path + oldFolderName + "/", e);
         }
+
+        if (itemsToDelete.isEmpty()) {
+            throw new FolderNotFoundException("Folder does not exist: " + path + oldFolderName);
+        }
+
+        batchDeleteObjects(userPrefix, itemsToDelete);
     }
 
     @Override
-    public void uploadFile(String userPrefix, String path, MultipartFile file) {
+    public void uploadFile(String userPrefix, String path, MultipartFile file) throws Exception {
         if (file == null || file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
             throw new IllegalArgumentException("File cannot be null or nameless. Choose a file to upload.");
         }
@@ -216,48 +199,35 @@ public class MinioServiceImpl implements MinioService {
         String fullPrefix = buildFullPrefix(userPrefix, path);
         String fullFilePath = fullPrefix + fileName;
 
-        try {
-            checkFileNotExists(fullFilePath);
+        checkFileNotExists(fullFilePath);
 
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(usersBucketName)
-                            .object(fullFilePath)
-                            .stream(file.getInputStream(), file.getSize(), -1)
-                            .build()
-            );
-        } catch (FileAlreadyExistsInStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to upload file: " + fullFilePath, e);
-        }
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(usersBucketName)
+                        .object(fullFilePath)
+                        .stream(file.getInputStream(), file.getSize(), -1)
+                        .build()
+        );
     }
 
     @Override
-    public void deleteFile(String userPrefix, String path, String fileToDeleteName) {
+    public void deleteFile(String userPrefix, String path, String fileToDeleteName) throws Exception {
         validateInputName(fileToDeleteName);
 
         String fullPrefix = buildFullPrefix(userPrefix, path);
         String fullFilePath = fullPrefix + fileToDeleteName;
 
-        try {
-            checkFileExists(fullFilePath);
+        checkFileExists(fullFilePath);
 
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(usersBucketName)
-                            .object(fullFilePath).build()
-            );
-
-        } catch (FileNotFoundInStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to delete file: " + fullFilePath, e);
-        }
+        minioClient.removeObject(
+                RemoveObjectArgs.builder()
+                        .bucket(usersBucketName)
+                        .object(fullFilePath).build()
+        );
     }
 
     @Override
-    public void renameFile(String userPrefix, String path, String oldFileName, String newFileName) {
+    public void renameFile(String userPrefix, String path, String oldFileName, String newFileName) throws Exception {
         validateInputName(oldFileName);
         validateInputName(newFileName);
 
@@ -269,38 +239,32 @@ public class MinioServiceImpl implements MinioService {
         String fullOldFilePath = fullPrefix + oldFileName;
         String fullNewFilePath = fullPrefix + newFileName;
 
-        try {
-            checkFileExists(fullOldFilePath);
-            checkFileNotExists(fullNewFilePath);
+        checkFileExists(fullOldFilePath);
+        checkFileNotExists(fullNewFilePath);
 
-            minioClient.copyObject(
-                    CopyObjectArgs.builder()
-                            .bucket(usersBucketName)
-                            .object(fullNewFilePath)
-                            .source(CopySource.builder()
-                                    .bucket(usersBucketName)
-                                    .object(fullOldFilePath)
-                                    .build())
-                            .build()
-            );
+        minioClient.copyObject(
+                CopyObjectArgs.builder()
+                        .bucket(usersBucketName)
+                        .object(fullNewFilePath)
+                        .source(CopySource.builder()
+                                .bucket(usersBucketName)
+                                .object(fullOldFilePath)
+                                .build())
+                        .build()
+        );
 
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(usersBucketName)
-                            .object(fullOldFilePath)
-                            .build());
-
-        } catch (FileNotFoundInStorageException | FileAlreadyExistsInStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to rename file: " + fullOldFilePath, e);
-        }
+        minioClient.removeObject(
+                RemoveObjectArgs.builder()
+                        .bucket(usersBucketName)
+                        .object(fullOldFilePath)
+                        .build());
     }
 
     @Override
-    public void uploadFolder(String userPrefix, String path, String folderToUploadName, MultipartFile[] files) {
-        if (files == null || files.length == 0) { // TODO проверить что будет при загрузке пустой папки
-            throw new IllegalArgumentException("Files cannot be null or empty");
+    public void uploadFolder(String userPrefix, String path, String folderToUploadName, MultipartFile[] files)
+            throws Exception {
+        if (files == null || files.length == 0) {
+            throw new IllegalArgumentException("Folder cannot be null or empty. Choose not empty folder.");
         }
 
         validateInputName(folderToUploadName);
@@ -308,23 +272,17 @@ public class MinioServiceImpl implements MinioService {
         String fullPrefix = buildFullPrefix(userPrefix, path);
         String fullUploadedFolderPath = fullPrefix + folderToUploadName + "/";
 
-        try {
-            checkFolderExists(userPrefix, fullPrefix, path);
-            checkFolderNotExists(fullUploadedFolderPath, folderToUploadName);
+        checkFolderExists(userPrefix, fullPrefix, path);
+        checkFolderNotExists(fullUploadedFolderPath);
 
-            List<SnowballObject> objectsToUpload = prepareUploadObjects(files, fullPrefix);
+        List<SnowballObject> objectsToUpload = prepareUploadObjects(files, fullPrefix);
 
-            minioClient.uploadSnowballObjects(
-                    UploadSnowballObjectsArgs.builder()
-                            .bucket(usersBucketName)
-                            .objects(objectsToUpload)
-                            .build()
-            );
-        } catch (FolderNotFoundException | FolderAlreadyExistsException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to upload folder: " + folderToUploadName, e);
-        }
+        minioClient.uploadSnowballObjects(
+                UploadSnowballObjectsArgs.builder()
+                        .bucket(usersBucketName)
+                        .objects(objectsToUpload)
+                        .build()
+        );
     }
 
     private List<SnowballObject> prepareUploadObjects(MultipartFile[] files, String fullPrefix) throws IOException {
@@ -370,9 +328,7 @@ public class MinioServiceImpl implements MinioService {
     }
 
     @Override
-    public InputStreamResource downloadFile(String userPrefix, String path, String fileName) {
-        validateInputName(fileName);
-
+    public InputStreamResource downloadFile(String userPrefix, String path, String fileName) throws Exception {
         String fullPrefix = buildFullPrefix(userPrefix, path);
         String fullFilePath = fullPrefix + fileName;
 
@@ -391,15 +347,12 @@ public class MinioServiceImpl implements MinioService {
                 throw new FileNotFoundInStorageException("File not found: " +
                         (path == null ? fileName : path + fileName));
             }
-            throw new RuntimeException("Failed to download file: " + fullFilePath, e);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to download file: " + fullFilePath, e);
+            throw e;
         }
     }
 
     @Override
-    public InputStreamResource downloadFolder(String userPrefix, String path, String folderName) {
-        validateInputName(folderName);
+    public InputStreamResource downloadFolder(String userPrefix, String path, String folderName) throws Exception {
 
         String fullPrefix = buildFullPrefix(userPrefix, path);
         String fullFolderPath = fullPrefix + folderName + "/";
@@ -407,6 +360,8 @@ public class MinioServiceImpl implements MinioService {
         Path tempZipFile = null;
 
         try {
+            checkFolderExists(userPrefix, fullFolderPath, path == null ? folderName : path + folderName);
+
             Iterable<Result<Item>> ItemsToDownload = minioClient.listObjects(
                     ListObjectsArgs.builder()
                             .bucket(usersBucketName)
@@ -417,20 +372,10 @@ public class MinioServiceImpl implements MinioService {
                             .build()
             );
 
-            boolean ItemsToDownloadAreEmpty = !ItemsToDownload.iterator().hasNext();
-            if (ItemsToDownloadAreEmpty) {
-                throw new FolderNotFoundException(
-                        "Folder does not exist: " + (path == null ? folderName : path + folderName + "/"));
-            }
-
             tempZipFile = createZipArchive(ItemsToDownload, fullFolderPath);
 
             return new InputStreamResource(Files.newInputStream(tempZipFile));
 
-        } catch (FolderNotFoundException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to download folder: " + fullFolderPath, e);
         } finally {
             cleanupTempFile(tempZipFile);
         }
@@ -465,7 +410,7 @@ public class MinioServiceImpl implements MinioService {
                 }
             }
         } catch (Exception e) {
-//            log.error("Failed to create ZIP archive for folder: {}", parentFolderFullPath, e);
+            log.error("Failed to create ZIP archive for folder: {}", parentFolderFullPath, e);
             throw new RuntimeException("Failed to create ZIP archive for folder: " + parentFolderFullPath, e);
         }
 
@@ -485,41 +430,37 @@ public class MinioServiceImpl implements MinioService {
             try {
                 Files.deleteIfExists(tempFile);
             } catch (IOException e) {
-                // Логируем ошибку удаления файла (если она произошла)
+                log.error("Failed to delete temp file: {}", tempFile, e);
             }
         }
     }
 
     @Override
-    public List<StorageItem> searchItems(String userPrefix, String query) {
+    public List<StorageItem> searchItems(String userPrefix, String query) throws Exception {
         List<StorageItem> itemsThatMatch = new ArrayList<>();
         if (query == null || query.isBlank()) {
             return itemsThatMatch;
         }
 
-        try {
-            Iterable<Result<Item>> allUserItems = minioClient.listObjects(
-                    ListObjectsArgs.builder()
-                            .bucket(usersBucketName)
-                            .prefix(userPrefix)
-                            .recursive(true)
-                            .build()
-            );
+        Iterable<Result<Item>> allUserItems = minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(usersBucketName)
+                        .prefix(userPrefix)
+                        .recursive(true)
+                        .build()
+        );
 
-            for (Result<Item> itemResult : allUserItems) {
-                Item item = itemResult.get();
-                String fullItemPath = item.objectName();
-                boolean isFolder = fullItemPath.endsWith("/");
+        for (Result<Item> itemResult : allUserItems) {
+            Item item = itemResult.get();
+            String fullItemPath = item.objectName();
+            boolean isFolder = fullItemPath.endsWith("/");
 
-                String fileName = extractNameFromPath(fullItemPath);
+            String itemName = extractNameFromPath(fullItemPath);
 
-                if (fileName.toLowerCase().contains(query.toLowerCase())) {
-                    String relativePath = fullItemPath.substring(userPrefix.length());
-                    itemsThatMatch.add(new StorageItem(relativePath, isFolder, item.size()));
-                }
+            if (itemName.toLowerCase().contains(query.toLowerCase())) {
+                String relativePath = fullItemPath.substring(userPrefix.length());
+                itemsThatMatch.add(new StorageItem(relativePath, isFolder, item.size()));
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to search by: " + query, e);
         }
 
         return itemsThatMatch;
@@ -527,7 +468,7 @@ public class MinioServiceImpl implements MinioService {
 
     private void checkFileExists(String fullFilePath) throws Exception {
         if (!fileExists(fullFilePath)) {
-            throw new FileNotFoundInStorageException("File not found: " + extractNameFromPath(fullFilePath));
+            throw new FileNotFoundInStorageException("File does not exist: " + extractNameFromPath(fullFilePath));
         }
     }
 
@@ -562,13 +503,16 @@ public class MinioServiceImpl implements MinioService {
         }
     }
 
-    private void checkFolderNotExists(String fullFolderPath, String folderName) throws Exception {
+    private void checkFolderNotExists(String fullFolderPath) throws Exception {
         if (folderExists(fullFolderPath)) {
-            throw new FolderAlreadyExistsException("Folder already exists: " + folderName);
+            throw new FolderAlreadyExistsException("Folder already exists: " + extractNameFromPath(fullFolderPath));
         }
     }
 
     private boolean folderExists(String folderPath) throws Exception {
+        if (folderPath.endsWith("//")) {
+            return false;
+        }
         try {
             minioClient.statObject(
                     StatObjectArgs.builder()
@@ -596,8 +540,11 @@ public class MinioServiceImpl implements MinioService {
 
             for (Result<DeleteError> result : deletingResults) {
                 DeleteError error = result.get();
-                throw new ObjectDeletionException(
+                Exception objectDeletionException = new ObjectDeletionException(
                         "Failed to delete object: " + error.objectName().substring(userPrefix.length()));
+                log.error("Failed to delete object: {}. {}",
+                        error.objectName(), error.message(), objectDeletionException);
+                throw objectDeletionException;
             }
         }
     }
@@ -608,7 +555,10 @@ public class MinioServiceImpl implements MinioService {
 
     private void validateInputName(String inputName) {
         if (inputName == null || inputName.isBlank()) {
-            throw new IllegalArgumentException("Name cannot be null or empty");
+            throw new InputNameValidationException("Name cannot be null or empty");
+        }
+        if (inputName.indexOf('/') != -1) {
+            throw new InputNameValidationException("Name cannot contains '/'");
         }
     }
 
@@ -620,7 +570,7 @@ public class MinioServiceImpl implements MinioService {
         if (!fullPrefix.endsWith("/")) {
             fullPrefix += "/";
         }
-        return fullPrefix;
+        return fullPrefix; // TODO ограничение максимальной длинны (в минио есть ограничение)
     }
 
     private String extractNameFromPath(String fullPath) {
