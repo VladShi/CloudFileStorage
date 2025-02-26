@@ -29,4 +29,6 @@ public interface MinioService {
     InputStreamResource downloadFolder(String basePath, String folderPath, String folderName) throws Exception;
 
     List<StorageItem> searchItems(String userPrefix, String query) throws Exception;
+
+    long getFileSize(String userPrefix, String path, String fileName) throws Exception;
 }

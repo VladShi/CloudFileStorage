@@ -466,6 +466,18 @@ public class MinioServiceImpl implements MinioService {
         return itemsThatMatch;
     }
 
+    @Override
+    public long getFileSize(String userPrefix, String path, String fileName) throws Exception {
+        String fullPath = buildFullPrefix(userPrefix, path) + fileName;
+        StatObjectResponse stat = minioClient.statObject(
+                StatObjectArgs.builder()
+                        .bucket(usersBucketName)
+                        .object(fullPath)
+                        .build()
+        );
+        return stat.size();
+    }
+
     private void checkFileExists(String fullFilePath) throws Exception {
         if (!fileExists(fullFilePath)) {
             throw new FileNotFoundInStorageException("File does not exist: " + extractNameFromPath(fullFilePath));

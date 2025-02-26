@@ -22,8 +22,11 @@ import ru.vladshi.cloudfilestorage.exception.ObjectDeletionException;
 import ru.vladshi.cloudfilestorage.service.MinioService;
 import ru.vladshi.cloudfilestorage.util.BreadcrumbUtil;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 @Controller
@@ -159,12 +162,13 @@ public class FileStorageController {
         InputStreamResource fileResource = minioService.downloadFile(userDetails.getUsername(), path, fileName);
 
         HttpHeaders headers = new HttpHeaders();
-        String encodedFileName = encodeNameForContentDisposition(fileName);
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + encodedFileName);
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, createDispositionHeader(fileName));
+        headers.add(HttpHeaders.CONTENT_TYPE, getContentType(fileName));
+        long fileSize = minioService.getFileSize(userDetails.getUsername(), path, fileName);
+        headers.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(fileSize));
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(fileResource);
     }
 
@@ -176,12 +180,11 @@ public class FileStorageController {
         InputStreamResource folderResource = minioService.downloadFolder(userDetails.getUsername(), path, folderName);
 
         HttpHeaders headers = new HttpHeaders();
-        String encodedFolderName = encodeNameForContentDisposition(folderName);
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + encodedFolderName + ".zip");
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, createDispositionHeader(folderName) + ".zip");
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(MediaType.parseMediaType("application/zip"))
                 .body(folderResource);
     }
 
@@ -195,8 +198,18 @@ public class FileStorageController {
         return "search";
     }
 
-    private String encodeNameForContentDisposition(String name) {
-        return URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20");
+    private String createDispositionHeader(String name) {
+        String encodedFileName = URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20");
+        return "attachment; filename*=UTF-8''" + encodedFileName;
+    }
+
+    private String getContentType(String fileName) {
+        try {
+            String mimeType = Files.probeContentType(Path.of(fileName));
+            return mimeType != null ? mimeType : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        } catch (IOException e) {
+            return MediaType.APPLICATION_OCTET_STREAM_VALUE;
+        }
     }
 
     private static String redirectByPath(String path) {
