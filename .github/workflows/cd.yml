@@ -1,13 +1,15 @@
 name: CD pipeline
 
 on:
-  push:
-    branches:
-      - master
+  workflow_run:
+    workflows: ["CI pipeline"]
+    branches: [master]
+    types: [completed]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       # Шаг 1: Клонируем репозиторий
@@ -32,7 +34,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "target/cloud-file-storage-0.0.1-SNAPSHOT.jar,docker-compose.yml"
+          source: "target/cloud-file-storage*.jar, docker-compose.yml"
           target: "/home/deploy/"
 
       # Шаг 5: Создаём файл .env на сервере
@@ -56,8 +58,44 @@ jobs:
             echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> /home/deploy/.env
             echo "REDIS_PASSWORD=${{ secrets.PASSWORD }}" >> /home/deploy/.env
 
-      # Шаг 6: Развёртываем контейнеры
-      - name: Deploy on server
+      # Шаг 6: Создаём файл application.properties на сервере
+      - name: Create application.properties on server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cat <<EOF > /home/deploy/application.properties
+            spring.datasource.url=jdbc:mysql://${{ secrets.MYSQL_HOST }}:3306/${{ secrets.MYSQL_DATABASE }}
+            spring.datasource.username=${{ secrets.MYSQL_USER }}
+            spring.datasource.password=${{ secrets.MYSQL_PASSWORD }}
+            spring.jpa.hibernate.ddl-auto=update
+            spring.flyway.enabled=true
+            spring.flyway.locations=classpath:db/migration
+            spring.flyway.baseline-on-migrate=true
+            spring.servlet.multipart.max-file-size=100MB
+            spring.servlet.multipart.max-request-size=100MB
+            minio.endpoint=${{ secrets.MINIO_ENDPOINT }}
+            minio.access-key=${{ secrets.MINIO_ROOT_USER }}
+            minio.secret-key=${{ secrets.MINIO_ROOT_PASSWORD }}
+            minio.bucket.users=${{ secrets.MINIO_BUCKET_USERS }}
+            spring.redis.host=${{ secrets.REDIS_HOST }}
+            spring.redis.port=${{ secrets.REDIS_PORT }}
+            spring.redis.password=${{ secrets.REDIS_PASSWORD }}
+            spring.data.redis.timeout=2000
+            spring.session.store-type=redis
+            spring.session.redis.flush-mode=on_save
+            spring.session.redis.namespace=spring:session
+            logging.file.name=/var/log/cloud-file-storage/app.log
+            logging.level.root=INFO
+            logging.logback.rollingpolicy.max-file-size=5MB
+            logging.logback.rollingpolicy.max-history=5
+            logging.logback.rollingpolicy.file-name-pattern=/var/log/cloud-file-storage/app-%d{yyyy-MM-dd}.%i.log
+            EOF
+
+      # Шаг 7: Развёртываем контейнеры
+      - name: Deploy containers on server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -68,7 +106,7 @@ jobs:
             docker-compose down
             docker-compose up -d
 
-      # Шаг 7: Перезапускаем Spring Boot приложение
+      # Шаг 8: Перезапускаем Spring Boot приложение
       - name: Restart Spring Boot application
         uses: appleboy/ssh-action@master
         with:
