@@ -102,6 +102,7 @@ public class MinioServiceImplTest {
         registry.add("minio.accessKey", minioContainer::getUserName);
         registry.add("minio.secretKey", minioContainer::getPassword);
         registry.add("minio.bucket.users", () -> TEST_BUCKET_NAME);
+        registry.add("storage.max-size-per-user", () -> "1MB");
     }
 
     @BeforeEach
@@ -523,6 +524,19 @@ public class MinioServiceImplTest {
     }
 
     @Test
+    @DisplayName("Попытка загрузки файла, превышающего лимит хранилища")
+    void shouldThrowExceptionWhenUploadingFileExceedsStorageLimit() {
+        byte[] largeData = new byte[1024 * 1024 + 1]; // 1MB + 1 байт
+        MultipartFile largeFile = new MockMultipartFile(
+                "large.bin", "large.bin", "application/octet-stream", largeData
+        );
+
+        assertThrows(StorageLimitExceededException.class,
+                () -> minioService.uploadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, largeFile),
+                "Должно выбрасываться исключение при загрузке файла, превышающего лимит хранилища");
+    }
+
+    @Test
     @DisplayName("Удаление существующего файла")
     void shouldDeleteExistingFile() throws Exception {
         minioService.uploadFile(TEST_USER_PREFIX, ROOT_FOLDER_PATH, MULTIPART_TEST_FILE);
@@ -810,6 +824,20 @@ public class MinioServiceImplTest {
         assertThrows(FolderAlreadyExistsException.class,
                 () -> minioService.uploadFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, folderName, new MultipartFile[]{multipartFile1}),
                 "Должно выбрасываться исключение при попытке загрузить папку с уже существующим именем");
+    }
+
+    @Test
+    @DisplayName("Попытка загрузки папки, превышающей лимит хранилища")
+    void shouldThrowExceptionWhenUploadingFolderExceedsStorageLimit() {
+        byte[] largeData = new byte[512 * 1024 + 1]; // 0.5MB + 1 байт
+        MultipartFile[] files = {
+                new MockMultipartFile("file1.bin", "folder/file1.bin", "application/octet-stream", largeData),
+                new MockMultipartFile("file2.bin", "folder/file2.bin", "application/octet-stream", largeData) // 1MB + 2 байта
+        };
+
+        assertThrows(StorageLimitExceededException.class,
+                () -> minioService.uploadFolder(TEST_USER_PREFIX, ROOT_FOLDER_PATH, "largeFolder", files),
+                "Должно выбрасываться исключение при загрузке папки, превышающей лимит хранилища");
     }
 
     @Test

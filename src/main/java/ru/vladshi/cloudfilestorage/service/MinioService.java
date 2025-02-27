@@ -3,6 +3,7 @@ package ru.vladshi.cloudfilestorage.service;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.web.multipart.MultipartFile;
 import ru.vladshi.cloudfilestorage.model.StorageItem;
+import ru.vladshi.cloudfilestorage.model.UserStorageInfo;
 
 import java.util.List;
 
@@ -31,4 +32,6 @@ public interface MinioService {
     List<StorageItem> searchItems(String userPrefix, String query) throws Exception;
 
     long getFileSize(String userPrefix, String path, String fileName) throws Exception;
+
+    UserStorageInfo getUserStorageInfo(String userPrefix) throws Exception;
 }

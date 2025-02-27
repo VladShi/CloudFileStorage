@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.vladshi.cloudfilestorage.model.StorageItem;
 import ru.vladshi.cloudfilestorage.exception.*;
+import ru.vladshi.cloudfilestorage.model.UserStorageInfo;
+import ru.vladshi.cloudfilestorage.util.SizeFormatter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -22,10 +24,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -35,6 +34,8 @@ public class MinioServiceImpl implements MinioService {
     private static final Logger log = LoggerFactory.getLogger(MinioServiceImpl.class);
     private final MinioClient minioClient;
     private final String usersBucketName;
+    @Value("${storage.max-size-per-user:40MB}")
+    private String maxSizePerUser;
 
     @Autowired
     public MinioServiceImpl(MinioClient minioClient, @Value("${minio.bucket.users}") String bucketName) {
@@ -194,6 +195,8 @@ public class MinioServiceImpl implements MinioService {
             throw new IllegalArgumentException("File cannot be null or nameless. Choose a file to upload.");
         }
 
+        checkStorageLimit(userPrefix, file);
+
         String fileName = file.getOriginalFilename();
 
         String fullPrefix = buildFullPrefix(userPrefix, path);
@@ -266,6 +269,8 @@ public class MinioServiceImpl implements MinioService {
         if (files == null || files.length == 0) {
             throw new IllegalArgumentException("Folder cannot be null or empty. Choose not empty folder.");
         }
+
+        checkStorageLimit(userPrefix, files);
 
         validateInputName(folderToUploadName);
 
@@ -591,5 +596,74 @@ public class MinioServiceImpl implements MinioService {
         }
         Path path = Paths.get(fullPath);
         return path.getFileName() != null ? path.getFileName().toString() : "/";
+    }
+
+    @Override
+    public UserStorageInfo getUserStorageInfo(String userPrefix) throws Exception {
+        long currentSize = getUserStorageSize(userPrefix);
+        long maxSize = getMaxStorageSize();
+        return new UserStorageInfo(currentSize, maxSize);
+    }
+
+    private long getUserStorageSize(String userPrefix) throws Exception {
+        long totalSize = 0;
+        Iterable<Result<Item>> objects = minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(usersBucketName)
+                        .prefix(userPrefix)
+                        .recursive(true)
+                        .build()
+        );
+
+        for (Result<Item> result : objects) {
+            Item item = result.get();
+            if (!item.isDir()) {
+                totalSize += item.size();
+            }
+        }
+        System.out.println(totalSize);
+        return totalSize;
+    }
+
+    public long getMaxStorageSize() {
+        return parseSize(maxSizePerUser);
+    }
+
+    private long parseSize(String sizeStr) {
+        sizeStr = sizeStr.trim().toUpperCase();
+        if (sizeStr.endsWith("MB")) {
+            return Long.parseLong(sizeStr.replace("MB", "")) * 1024 * 1024;
+        } else if (sizeStr.endsWith("GB")) {
+            return Long.parseLong(sizeStr.replace("GB", "")) * 1024 * 1024 * 1024;
+        } else if (sizeStr.endsWith("KB")) {
+            return Long.parseLong(sizeStr.replace("KB", "")) * 1024;
+        } else {
+            return Long.parseLong(sizeStr);
+        }
+    }
+
+    private void checkStorageLimit(String userPrefix, MultipartFile file) throws Exception {
+        long uploadSize = file.getSize();
+        checkStorageLimit(userPrefix, uploadSize);
+    }
+
+    private void checkStorageLimit(String userPrefix, MultipartFile[] files) throws Exception {
+        long uploadSize = Arrays.stream(files)
+                .filter(file -> file != null)
+                .mapToLong(MultipartFile::getSize)
+                .sum();
+        checkStorageLimit(userPrefix, uploadSize);
+    }
+
+    private void checkStorageLimit(String userPrefix, long uploadSize) throws Exception {
+        long currentSize = getUserStorageSize(userPrefix);
+        long maxSize = getMaxStorageSize();
+        long availableSize = maxSize - currentSize;
+
+        if (uploadSize > availableSize) {
+            throw new StorageLimitExceededException(
+                    "Storage limit exceeded: available " + SizeFormatter.formatSize(availableSize)
+                            + ", uploading " + SizeFormatter.formatSize(uploadSize));
+        }
     }
 }

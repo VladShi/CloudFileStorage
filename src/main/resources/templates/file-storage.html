@@ -63,6 +63,22 @@
                         <i class="fa-solid fa-upload"></i> Upload Folder
                     </button>
                 </form>
+                <div class="storage-badge">
+                    <div class="storage-header">
+                        <i class="fa-solid fa-hard-drive"></i> Storage
+                    </div>
+                    <div class="storage-values">
+                        <div class="storage-current" th:classappend="${storageInfo.usageClass}"
+                             th:title="${storageInfo.currentSize * 100 / storageInfo.maxSize} + '%'">
+                            <span class="label">Current:</span>
+                            <span class="value" th:text="${storageInfo.formattedCurrentSize}"></span>
+                        </div>
+                        <div class="storage-max">
+                            <span class="label">Maximum:</span>
+                            <span class="value" th:text="${storageInfo.formattedMaxSize}"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Контейнер для хлебных крошек и таблицы -->

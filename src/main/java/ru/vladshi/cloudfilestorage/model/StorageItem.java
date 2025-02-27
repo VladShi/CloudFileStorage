@@ -1,5 +1,7 @@
 package ru.vladshi.cloudfilestorage.model;
 
+import ru.vladshi.cloudfilestorage.util.SizeFormatter;
+
 public record StorageItem(String relativePath, boolean isFolder, long size) {
 
     public String getName() {
@@ -30,22 +32,6 @@ public record StorageItem(String relativePath, boolean isFolder, long size) {
         if (isFolder) {
             return "-";
         }
-
-        if (size < 1024) {
-            return size + " B"; // Байты
-        }
-
-        double sizeInKB = size / 1024.0;
-        if (sizeInKB < 1024) {
-            return String.format("%.1f KB", sizeInKB);
-        }
-
-        double sizeInMB = sizeInKB / 1024.0;
-        if (sizeInMB < 1024) {
-            return String.format("%.1f MB", sizeInMB);
-        }
-
-        double sizeInGB = sizeInMB / 1024.0;
-        return String.format("%.1f GB", sizeInGB);
+        return SizeFormatter.formatSize(size);
     }
 }

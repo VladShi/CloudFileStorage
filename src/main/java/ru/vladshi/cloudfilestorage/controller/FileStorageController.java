@@ -14,11 +14,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import ru.vladshi.cloudfilestorage.exception.*;
 import ru.vladshi.cloudfilestorage.model.StorageItem;
-import ru.vladshi.cloudfilestorage.exception.FileAlreadyExistsInStorageException;
-import ru.vladshi.cloudfilestorage.exception.FolderAlreadyExistsException;
-import ru.vladshi.cloudfilestorage.exception.InputNameValidationException;
-import ru.vladshi.cloudfilestorage.exception.ObjectDeletionException;
+import ru.vladshi.cloudfilestorage.model.UserStorageInfo;
 import ru.vladshi.cloudfilestorage.service.MinioService;
 import ru.vladshi.cloudfilestorage.util.BreadcrumbUtil;
 
@@ -41,10 +39,12 @@ public class FileStorageController {
                             @RequestParam(required = false) String path) throws Exception {
 
         List<StorageItem> storageItems = minioService.getItems(userDetails.getUsername(), path);
+        UserStorageInfo storageInfo = minioService.getUserStorageInfo(userDetails.getUsername());
 
         model.addAttribute("path", path);
         model.addAttribute("breadcrumbs", BreadcrumbUtil.buildBreadcrumbs(path));
         model.addAttribute("items", storageItems);
+        model.addAttribute("storageInfo", storageInfo);
 
         return "file-storage";
     }
@@ -103,7 +103,7 @@ public class FileStorageController {
                                RedirectAttributes redirectAttributes) throws Exception {
         try {
             minioService.uploadFile(userDetails.getUsername(), path, file);
-        } catch (FileAlreadyExistsInStorageException | IllegalArgumentException e) {
+        } catch (FileAlreadyExistsInStorageException | IllegalArgumentException | StorageLimitExceededException e) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to upload file. " + e.getMessage());
         }
@@ -146,7 +146,8 @@ public class FileStorageController {
                              RedirectAttributes redirectAttributes) throws Exception {
         try {
             minioService.uploadFolder(userDetails.getUsername(), path, folderName, files);
-        } catch (FolderAlreadyExistsException | IllegalArgumentException | InputNameValidationException e) {
+        } catch (FolderAlreadyExistsException | IllegalArgumentException
+                 | InputNameValidationException | StorageLimitExceededException e) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to upload folder. " + e.getMessage());
         }

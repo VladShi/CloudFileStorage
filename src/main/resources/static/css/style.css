@@ -156,6 +156,7 @@ a:hover {
     flex: 1; /* Занимает всё доступное пространство */
     padding-right: 40px; /* Отступ справа для кнопки очистки */
     margin-right: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .clear-button {
@@ -222,23 +223,36 @@ a:hover {
     align-items: flex-start; /* Выравнивание кнопок по левому краю */
 }
 
-.action-button {
+.action-button, .search-button, .logout-form button {
     background-color: #555;
     color: #fff;
-    border: none;
-    padding: 10px 15px; /* Уменьшим padding для компактности */
+    border: 1px solid rgb(135 135 135 / 70%);
+    padding: 10px 15px; /* Оставляем для action-button и search-button */
     border-radius: 4px;
     cursor: pointer;
-    text-decoration: none; /* ? */
+    text-decoration: none;
     display: flex;
     align-items: center;
-    gap: 8px; /* Расстояние между иконкой и текстом */
-    width: 150px; /* Фиксированная ширина */
-    text-align: left; /* Выравнивание текста по левому краю */
+    gap: 8px; /* Для action-button и search-button */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Тень для объёма */
+    transition: transform 0.1s ease, box-shadow 0.1s ease; /* Плавный подъём */
 }
 
-.action-button:hover {
+/* Специфичные стили */
+.action-button {
+    width: 150px;
+    text-align: left;
+}
+
+.logout-form button {
+    padding: 10px 20px; /* Как было в .btn */
+}
+
+/* Эффект поднятия при наведении */
+.action-button:hover, .search-button:hover, .logout-form button:hover {
     background-color: #666;
+    transform: translateY(-1px); /* Поднятие на 1px */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* Усиленная тень */
 }
 
 .action-button i {
@@ -258,6 +272,7 @@ a:hover {
 /* Хлебные крошки */
 .breadcrumbs {
     display: flex;
+    max-width: 68vmax;
     flex-wrap: wrap; /* Позволяет переноситься на новую строку */
     align-items: center;
     flex: 1; /* Занимает все доступное пространство */
@@ -287,23 +302,26 @@ a:hover {
 /* Таблица файлов и папок */
 .file-table {
     max-width: 68vmax;
-    border-collapse: collapse;
+    border-collapse: collapse; /* Возвращаем collapse для тонких линий */
     margin-bottom: 20px;
-    border-radius: 5px; /* Скругление углов таблицы */
-    overflow: hidden; /* Скрытие переполнения для корректного скругления углов */
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #3e3e3e; /* Как у бейджа */
+    border: 1px solid #555; /* Как у бейджа */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Тень, как у бейджа */
 }
 
 .file-table th, .file-table td {
     padding: 8px;
     line-height: 1.2;
-    border: 1px solid #444;
+    border: 1px solid #444; /* Тонкие линии внутри, как было */
     text-align: left;
 }
 
 .file-table th {
-    background-color: #555;
+    background-color: #555; /* Сохраняем цвет заголовков */
     color: #fff;
-    border-bottom: 1px solid #444; /* Добавление разделителя между заголовками и строками */
+    border-bottom: 1px solid #444;
 }
 
 .file-table a {
@@ -493,4 +511,81 @@ a:hover {
 .extension-separator {
     color: #e1e1e1;
     font-size: 16px;
+}
+
+/* Storage badge под кнопками */
+.storage-badge {
+    width: 150px; /* Такая же ширина, как у кнопок */
+    background-color: #3e3e3e; /* Цвет фона, как у header */
+    border: 1px solid #555; /* Рамка чуть светлее фона */
+    border-radius: 6px; /* Скруглённые углы */
+    padding: 8px; /* Внутренний отступ */
+    margin-top: 40px; /* Небольшой промежуток от кнопок */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Лёгкая тень для глубины */
+    text-align: center; /* Центрирование содержимого */
+}
+
+/* Storage badge под кнопками */
+.storage-badge {
+    width: 150px; /* Такая же ширина, как у кнопок */
+    background-color: #3e3e3e; /* Цвет фона, как у header */
+    border: 1px solid #555; /* Рамка чуть светлее фона */
+    border-radius: 6px; /* Скруглённые углы */
+    padding: 8px; /* Внутренний отступ */
+    margin-top: 40px; /* Небольшой промежуток от кнопок */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Лёгкая тень для глубины */
+}
+
+.storage-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px; /* Расстояние между иконкой и текстом */
+    font-size: 14px; /* Чуть меньше, чем у кнопок */
+    color: #c3ced1; /* Цвет текста, как у breadcrumbs */
+    font-weight: bold; /* Жирный шрифт для заголовка */
+    margin-bottom: 12px; /* Увеличенный отступ перед значениями */
+    position: relative; /* Для полосы */
+}
+
+.storage-header::after {
+    content: '';
+    position: absolute;
+    bottom: -5px; /* Смещаем ниже текста на 5px */
+    left: 10px; /* Отступ от левого края */
+    right: 10px; /* Отступ от правого края */
+    height: 1px; /* Тонкая полоса */
+    background-color: #555; /* Цвет полосы совпадает с рамкой */
+}
+
+.storage-values {
+    display: flex;
+    flex-direction: column;
+    gap: 6px; /* Увеличенное расстояние между строками */
+}
+
+.storage-current, .storage-max {
+    display: flex;
+    justify-content: space-between; /* Текст к левому краю, значение к правому */
+    font-size: 12px; /* Размер текста */
+    font-family: "Courier New", Courier, monospace; /* Моноширинный шрифт */
+    letter-spacing: 0.5px; /* Разброс букв */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.storage-current .label, .storage-max .label {
+    color: #c3ced1; /* Цвет текста, как у breadcrumbs */
+}
+
+.storage-current .value, .storage-max .value {
+    color: #eaeaea; /* Базовый цвет значений */
+}
+
+/* Динамический цвет для Current */
+.storage-current.warn .value {
+    color: #FF9800; /* Оранжевый при >80% */
+}
+
+.storage-current.error .value {
+    color: #F44336; /* Красный при 100% */
 }
