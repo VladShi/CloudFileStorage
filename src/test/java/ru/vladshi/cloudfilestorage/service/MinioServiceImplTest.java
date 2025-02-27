@@ -17,7 +17,7 @@ import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import ru.vladshi.cloudfilestorage.dto.StorageItem;
+import ru.vladshi.cloudfilestorage.model.StorageItem;
 import ru.vladshi.cloudfilestorage.exception.*;
 
 import java.io.ByteArrayInputStream;

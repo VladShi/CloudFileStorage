@@ -1,4 +1,4 @@
-package ru.vladshi.cloudfilestorage.dto;
+package ru.vladshi.cloudfilestorage.model;
 
 public record StorageItem(String relativePath, boolean isFolder, long size) {
 

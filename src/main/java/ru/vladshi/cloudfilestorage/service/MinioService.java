@@ -2,7 +2,7 @@ package ru.vladshi.cloudfilestorage.service;
 
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.web.multipart.MultipartFile;
-import ru.vladshi.cloudfilestorage.dto.StorageItem;
+import ru.vladshi.cloudfilestorage.model.StorageItem;
 
 import java.util.List;
 

@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import ru.vladshi.cloudfilestorage.dto.StorageItem;
+import ru.vladshi.cloudfilestorage.model.StorageItem;
 import ru.vladshi.cloudfilestorage.exception.*;
 
 import java.io.ByteArrayInputStream;

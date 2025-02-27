@@ -1,6 +1,6 @@
 package ru.vladshi.cloudfilestorage.util;
 
-import ru.vladshi.cloudfilestorage.dto.Breadcrumb;
+import ru.vladshi.cloudfilestorage.model.Breadcrumb;
 
 import java.util.ArrayList;
 import java.util.List;

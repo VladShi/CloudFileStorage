@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import ru.vladshi.cloudfilestorage.dto.StorageItem;
+import ru.vladshi.cloudfilestorage.model.StorageItem;
 import ru.vladshi.cloudfilestorage.exception.FileAlreadyExistsInStorageException;
 import ru.vladshi.cloudfilestorage.exception.FolderAlreadyExistsException;
 import ru.vladshi.cloudfilestorage.exception.InputNameValidationException;
