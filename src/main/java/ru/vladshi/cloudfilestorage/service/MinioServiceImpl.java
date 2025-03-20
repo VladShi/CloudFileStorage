@@ -621,7 +621,6 @@ public class MinioServiceImpl implements MinioService {
                 totalSize += item.size();
             }
         }
-        System.out.println(totalSize);
         return totalSize;
     }
 

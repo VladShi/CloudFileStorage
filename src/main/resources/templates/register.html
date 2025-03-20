@@ -10,7 +10,7 @@
     <div class="center-container">
         <h1>Register</h1>
 
-        <form th:action="@{/auth/register}" method="post" th:object="${userDto}">
+        <form th:action="@{/user/register}" method="post" th:object="${userDto}">
             <div>
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" th:field="*{username}" required/>

@@ -1,8 +1,7 @@
 package ru.vladshi.cloudfilestorage.service;
 
-import org.springframework.security.core.userdetails.UserDetailsService;
 import ru.vladshi.cloudfilestorage.entity.User;
 
-public interface UserService extends UserDetailsService {
+public interface UserService {
     void registerUser(User user);
 }

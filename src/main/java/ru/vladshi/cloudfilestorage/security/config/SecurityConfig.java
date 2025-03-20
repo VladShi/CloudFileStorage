@@ -1,4 +1,4 @@
-package ru.vladshi.cloudfilestorage.config;
+package ru.vladshi.cloudfilestorage.security.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -19,7 +19,7 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(authorizeRequests -> authorizeRequests
                     .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-                    .requestMatchers("/auth/login","/auth/register").anonymous()
+                    .requestMatchers("/auth/login","/user/register").anonymous()
                     .anyRequest().authenticated()
             )
             .formLogin(formLogin -> formLogin

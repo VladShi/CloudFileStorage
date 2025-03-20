@@ -6,7 +6,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +16,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.vladshi.cloudfilestorage.exception.*;
 import ru.vladshi.cloudfilestorage.model.StorageItem;
 import ru.vladshi.cloudfilestorage.model.UserStorageInfo;
+import ru.vladshi.cloudfilestorage.security.model.CustomUserDetails;
 import ru.vladshi.cloudfilestorage.service.MinioService;
 import ru.vladshi.cloudfilestorage.util.BreadcrumbUtil;
 
@@ -34,7 +34,7 @@ public class FileStorageController {
     private final MinioService minioService;
 
     @GetMapping("/")
-    public String showFiles(@AuthenticationPrincipal UserDetails userDetails,
+    public String showFiles(@AuthenticationPrincipal CustomUserDetails userDetails,
                             Model model,
                             @RequestParam(required = false) String path) throws Exception {
 
@@ -50,7 +50,7 @@ public class FileStorageController {
     }
 
     @PostMapping("/create-folder")
-    public String createFolder(@AuthenticationPrincipal UserDetails userDetails,
+        public String createFolder(@AuthenticationPrincipal CustomUserDetails userDetails,
                                @RequestParam(required = false) String path,
                                @RequestParam String newFolderName,
                                RedirectAttributes redirectAttributes) throws Exception {
@@ -65,7 +65,7 @@ public class FileStorageController {
     }
 
     @PostMapping("/delete-folder")
-    public String deleteFolder(@AuthenticationPrincipal UserDetails userDetails,
+    public String deleteFolder(@AuthenticationPrincipal CustomUserDetails userDetails,
                                @RequestParam(required = false) String path,
                                @RequestParam String folderToDelete,
                                RedirectAttributes redirectAttributes) throws Exception {
@@ -80,7 +80,7 @@ public class FileStorageController {
     }
 
     @PostMapping("/rename-folder")
-    public String renameFolder(@AuthenticationPrincipal UserDetails userDetails,
+    public String renameFolder(@AuthenticationPrincipal CustomUserDetails userDetails,
                                @RequestParam(required = false) String path,
                                @RequestParam String folderToRename,
                                @RequestParam String newFolderName,
@@ -97,7 +97,7 @@ public class FileStorageController {
     }
 
     @PostMapping("/upload-file")
-    public String uploadFile(@AuthenticationPrincipal UserDetails userDetails,
+    public String uploadFile(@AuthenticationPrincipal CustomUserDetails userDetails,
                                @RequestParam(required = false) String path,
                                @RequestParam("file") MultipartFile file,
                                RedirectAttributes redirectAttributes) throws Exception {
@@ -112,7 +112,7 @@ public class FileStorageController {
     }
 
     @PostMapping("/delete-file")
-    public String deleteFile(@AuthenticationPrincipal UserDetails userDetails,
+    public String deleteFile(@AuthenticationPrincipal CustomUserDetails userDetails,
                                @RequestParam(required = false) String path,
                                @RequestParam String fileToDelete) throws Exception {
 
@@ -122,7 +122,7 @@ public class FileStorageController {
     }
 
     @PostMapping("/rename-file")
-    public String renameFile(@AuthenticationPrincipal UserDetails userDetails,
+    public String renameFile(@AuthenticationPrincipal CustomUserDetails userDetails,
                                @RequestParam(required = false) String path,
                                @RequestParam String fileToRename,
                                @RequestParam String newFileName,
@@ -139,7 +139,7 @@ public class FileStorageController {
     }
 
     @PostMapping("/upload-folder")
-    public String uploadFolder(@AuthenticationPrincipal UserDetails userDetails,
+    public String uploadFolder(@AuthenticationPrincipal CustomUserDetails userDetails,
                              @RequestParam(required = false) String path,
                              @RequestParam String folderName,
                              @RequestParam("files") MultipartFile[] files,
@@ -156,7 +156,7 @@ public class FileStorageController {
     }
 
     @GetMapping("/download-file")
-    public ResponseEntity<InputStreamResource> downloadFile(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<InputStreamResource> downloadFile(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                             @RequestParam(required = false) String path,
                                                             @RequestParam String fileName) throws Exception {
 
@@ -174,7 +174,7 @@ public class FileStorageController {
     }
 
     @GetMapping("/download-folder")
-    public ResponseEntity<InputStreamResource> downloadFolder(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<InputStreamResource> downloadFolder(@AuthenticationPrincipal CustomUserDetails userDetails,
                                                             @RequestParam(required = false) String path,
                                                             @RequestParam String folderName) throws Exception {
 
@@ -190,7 +190,7 @@ public class FileStorageController {
     }
 
     @GetMapping("/search")
-    public String search(@AuthenticationPrincipal UserDetails userDetails,
+    public String search(@AuthenticationPrincipal CustomUserDetails userDetails,
                          Model model,
                          @RequestParam(required = false) String searchQuery) throws Exception {
         model.addAttribute("items", minioService.searchItems(userDetails.getUsername(), searchQuery.strip()));
