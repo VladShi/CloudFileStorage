@@ -12,8 +12,8 @@ public class UserDto {
     @NotNull
     @NotEmpty(message = "Username is required")
     @Size(min = 4, max = 30, message = "Username must be between 4 and 30 characters")
-    @Pattern(regexp = "^[a-zA-Z0-9!@$.^_-]*$",
-            message = "Username can only contain English letters, numbers, and special characters !@$.^_-")
+    @Pattern(regexp = "^[a-zA-Z0-9!@$^_-]*$",
+            message = "Username can only contain English letters, numbers, and special characters !@$^_-")
     private String username;
 
     @NotNull

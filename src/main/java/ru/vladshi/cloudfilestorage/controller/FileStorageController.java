@@ -5,7 +5,6 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +15,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.vladshi.cloudfilestorage.exception.*;
 import ru.vladshi.cloudfilestorage.model.StorageItem;
 import ru.vladshi.cloudfilestorage.model.UserStorageInfo;
-import ru.vladshi.cloudfilestorage.security.model.CustomUserDetails;
+import ru.vladshi.cloudfilestorage.security.annotation.UserPrefix;
 import ru.vladshi.cloudfilestorage.service.MinioService;
 import ru.vladshi.cloudfilestorage.util.BreadcrumbUtil;
 
@@ -34,12 +33,12 @@ public class FileStorageController {
     private final MinioService minioService;
 
     @GetMapping("/")
-    public String showFiles(@AuthenticationPrincipal CustomUserDetails userDetails,
+    public String showFiles(@UserPrefix String userPrefix,
                             Model model,
                             @RequestParam(required = false) String path) throws Exception {
 
-        List<StorageItem> storageItems = minioService.getItems(userDetails.getUsername(), path);
-        UserStorageInfo storageInfo = minioService.getUserStorageInfo(userDetails.getUsername());
+        List<StorageItem> storageItems = minioService.getItems(userPrefix, path);
+        UserStorageInfo storageInfo = minioService.getUserStorageInfo(userPrefix);
 
         model.addAttribute("path", path);
         model.addAttribute("breadcrumbs", BreadcrumbUtil.buildBreadcrumbs(path));
@@ -50,13 +49,13 @@ public class FileStorageController {
     }
 
     @PostMapping("/create-folder")
-        public String createFolder(@AuthenticationPrincipal CustomUserDetails userDetails,
-                               @RequestParam(required = false) String path,
-                               @RequestParam String newFolderName,
-                               RedirectAttributes redirectAttributes) throws Exception {
+        public String createFolder(@UserPrefix String userPrefix,
+                                   @RequestParam(required = false) String path,
+                                   @RequestParam String newFolderName,
+                                   RedirectAttributes redirectAttributes) throws Exception {
         try {
             validateInputName(newFolderName);
-            minioService.createFolder(userDetails.getUsername(), path, newFolderName.strip());
+            minioService.createFolder(userPrefix, path, newFolderName.strip());
         } catch (FolderAlreadyExistsException | InputNameValidationException e) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to create folder. " + e.getMessage());
@@ -65,12 +64,12 @@ public class FileStorageController {
     }
 
     @PostMapping("/delete-folder")
-    public String deleteFolder(@AuthenticationPrincipal CustomUserDetails userDetails,
+    public String deleteFolder(@UserPrefix String userPrefix,
                                @RequestParam(required = false) String path,
                                @RequestParam String folderToDelete,
                                RedirectAttributes redirectAttributes) throws Exception {
         try {
-            minioService.deleteFolder(userDetails.getUsername(), path, folderToDelete);
+            minioService.deleteFolder(userPrefix, path, folderToDelete);
         } catch (ObjectDeletionException e) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to delete folder. " + e.getMessage());
@@ -80,14 +79,14 @@ public class FileStorageController {
     }
 
     @PostMapping("/rename-folder")
-    public String renameFolder(@AuthenticationPrincipal CustomUserDetails userDetails,
+    public String renameFolder(@UserPrefix String userPrefix,
                                @RequestParam(required = false) String path,
                                @RequestParam String folderToRename,
                                @RequestParam String newFolderName,
                                RedirectAttributes redirectAttributes) throws Exception {
         try {
             validateInputName(newFolderName);
-            minioService.renameFolder(userDetails.getUsername(), path, folderToRename, newFolderName.strip());
+            minioService.renameFolder(userPrefix, path, folderToRename, newFolderName.strip());
         } catch (FolderAlreadyExistsException | ObjectDeletionException | InputNameValidationException e) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to rename folder. " + e.getMessage());
@@ -97,39 +96,39 @@ public class FileStorageController {
     }
 
     @PostMapping("/upload-file")
-    public String uploadFile(@AuthenticationPrincipal CustomUserDetails userDetails,
-                               @RequestParam(required = false) String path,
-                               @RequestParam("file") MultipartFile file,
-                               RedirectAttributes redirectAttributes) throws Exception {
+    public String uploadFile(@UserPrefix String userPrefix,
+                             @RequestParam(required = false) String path,
+                             @RequestParam("file") MultipartFile file,
+                             RedirectAttributes redirectAttributes) throws Exception {
         try {
-            minioService.uploadFile(userDetails.getUsername(), path, file);
+            minioService.uploadFile(userPrefix, path, file);
         } catch (FileAlreadyExistsInStorageException | IllegalArgumentException | StorageLimitExceededException e) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to upload file. " + e.getMessage());
         }
 
-        return redirectByPath(path); // TODO увеличить максимальный размер загружаемого файла в спринге (по-умолчанию 30мб)
+        return redirectByPath(path);
     }
 
     @PostMapping("/delete-file")
-    public String deleteFile(@AuthenticationPrincipal CustomUserDetails userDetails,
-                               @RequestParam(required = false) String path,
-                               @RequestParam String fileToDelete) throws Exception {
+    public String deleteFile(@UserPrefix String userPrefix,
+                             @RequestParam(required = false) String path,
+                             @RequestParam String fileToDelete) throws Exception {
 
-        minioService.deleteFile(userDetails.getUsername(), path, fileToDelete);
+        minioService.deleteFile(userPrefix, path, fileToDelete);
 
         return redirectByPath(path);
     }
 
     @PostMapping("/rename-file")
-    public String renameFile(@AuthenticationPrincipal CustomUserDetails userDetails,
-                               @RequestParam(required = false) String path,
-                               @RequestParam String fileToRename,
-                               @RequestParam String newFileName,
-                               RedirectAttributes redirectAttributes) throws Exception {
+    public String renameFile(@UserPrefix String userPrefix,
+                             @RequestParam(required = false) String path,
+                             @RequestParam String fileToRename,
+                             @RequestParam String newFileName,
+                             RedirectAttributes redirectAttributes) throws Exception {
         try {
             validateInputName(newFileName);
-            minioService.renameFile(userDetails.getUsername(), path, fileToRename, newFileName.strip());
+            minioService.renameFile(userPrefix, path, fileToRename, newFileName.strip());
         } catch (FileAlreadyExistsInStorageException | InputNameValidationException e) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to rename file. " + e.getMessage());
@@ -139,13 +138,13 @@ public class FileStorageController {
     }
 
     @PostMapping("/upload-folder")
-    public String uploadFolder(@AuthenticationPrincipal CustomUserDetails userDetails,
-                             @RequestParam(required = false) String path,
-                             @RequestParam String folderName,
-                             @RequestParam("files") MultipartFile[] files,
-                             RedirectAttributes redirectAttributes) throws Exception {
+    public String uploadFolder(@UserPrefix String userPrefix,
+                               @RequestParam(required = false) String path,
+                               @RequestParam String folderName,
+                               @RequestParam("files") MultipartFile[] files,
+                               RedirectAttributes redirectAttributes) throws Exception {
         try {
-            minioService.uploadFolder(userDetails.getUsername(), path, folderName, files);
+            minioService.uploadFolder(userPrefix, path, folderName, files);
         } catch (FolderAlreadyExistsException | IllegalArgumentException
                  | InputNameValidationException | StorageLimitExceededException e) {
             redirectAttributes.addFlashAttribute(
@@ -156,16 +155,16 @@ public class FileStorageController {
     }
 
     @GetMapping("/download-file")
-    public ResponseEntity<InputStreamResource> downloadFile(@AuthenticationPrincipal CustomUserDetails userDetails,
+    public ResponseEntity<InputStreamResource> downloadFile(@UserPrefix String userPrefix,
                                                             @RequestParam(required = false) String path,
                                                             @RequestParam String fileName) throws Exception {
 
-        InputStreamResource fileResource = minioService.downloadFile(userDetails.getUsername(), path, fileName);
+        InputStreamResource fileResource = minioService.downloadFile(userPrefix, path, fileName);
 
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.CONTENT_DISPOSITION, createDispositionHeader(fileName));
         headers.add(HttpHeaders.CONTENT_TYPE, getContentType(fileName));
-        long fileSize = minioService.getFileSize(userDetails.getUsername(), path, fileName);
+        long fileSize = minioService.getFileSize(userPrefix, path, fileName);
         headers.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(fileSize));
 
         return ResponseEntity.ok()
@@ -174,11 +173,11 @@ public class FileStorageController {
     }
 
     @GetMapping("/download-folder")
-    public ResponseEntity<InputStreamResource> downloadFolder(@AuthenticationPrincipal CustomUserDetails userDetails,
-                                                            @RequestParam(required = false) String path,
-                                                            @RequestParam String folderName) throws Exception {
+    public ResponseEntity<InputStreamResource> downloadFolder(@UserPrefix String userPrefix,
+                                                              @RequestParam(required = false) String path,
+                                                              @RequestParam String folderName) throws Exception {
 
-        InputStreamResource folderResource = minioService.downloadFolder(userDetails.getUsername(), path, folderName);
+        InputStreamResource folderResource = minioService.downloadFolder(userPrefix, path, folderName);
 
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.CONTENT_DISPOSITION, createDispositionHeader(folderName) + ".zip");
@@ -190,10 +189,10 @@ public class FileStorageController {
     }
 
     @GetMapping("/search")
-    public String search(@AuthenticationPrincipal CustomUserDetails userDetails,
+    public String search(@UserPrefix String userPrefix,
                          Model model,
                          @RequestParam(required = false) String searchQuery) throws Exception {
-        model.addAttribute("items", minioService.searchItems(userDetails.getUsername(), searchQuery.strip()));
+        model.addAttribute("items", minioService.searchItems(userPrefix, searchQuery.strip()));
         model.addAttribute("searchQuery", searchQuery);
 
         return "search";
