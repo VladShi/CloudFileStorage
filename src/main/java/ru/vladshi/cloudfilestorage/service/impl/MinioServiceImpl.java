@@ -1,4 +1,4 @@
-package ru.vladshi.cloudfilestorage.service;
+package ru.vladshi.cloudfilestorage.service.impl;
 
 import io.minio.*;
 import io.minio.errors.*;
@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.vladshi.cloudfilestorage.model.StorageItem;
 import ru.vladshi.cloudfilestorage.exception.*;
 import ru.vladshi.cloudfilestorage.model.UserStorageInfo;
+import ru.vladshi.cloudfilestorage.service.MinioService;
 import ru.vladshi.cloudfilestorage.util.SizeFormatter;
 
 import java.io.ByteArrayInputStream;

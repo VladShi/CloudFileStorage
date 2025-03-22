@@ -1,4 +1,4 @@
-package ru.vladshi.cloudfilestorage.service;
+package ru.vladshi.cloudfilestorage.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.hibernate.exception.ConstraintViolationException;
@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import ru.vladshi.cloudfilestorage.entity.User;
 import ru.vladshi.cloudfilestorage.exception.UserRegistrationException;
 import ru.vladshi.cloudfilestorage.repository.UserRepository;
+import ru.vladshi.cloudfilestorage.service.UserService;
 
 @Service
 @RequiredArgsConstructor

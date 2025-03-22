@@ -21,6 +21,7 @@ import org.testcontainers.utility.DockerImageName;
 import ru.vladshi.cloudfilestorage.entity.User;
 import ru.vladshi.cloudfilestorage.exception.UserRegistrationException;
 import ru.vladshi.cloudfilestorage.repository.UserRepository;
+import ru.vladshi.cloudfilestorage.service.impl.UserServiceImpl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
