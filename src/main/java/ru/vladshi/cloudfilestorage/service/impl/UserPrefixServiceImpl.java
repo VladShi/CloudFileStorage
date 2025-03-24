@@ -7,7 +7,7 @@ import ru.vladshi.cloudfilestorage.service.UserPrefixService;
 public class UserPrefixServiceImpl implements UserPrefixService {
 
     @Override
-    public String generate(Long userId, String username) {
+    public String buildUserPrefix(Long userId, String username) {
         return userId + "-" + username + "/";
     }
 }
