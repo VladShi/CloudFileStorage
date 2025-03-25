@@ -2,6 +2,8 @@ package ru.vladshi.cloudfilestorage.handler;
 
 import jakarta.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.Role;
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -13,6 +15,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 @Component
+@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 @Slf4j
 public class RedirectWithPathReturnValueHandler implements HandlerMethodReturnValueHandler {
 

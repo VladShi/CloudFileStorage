@@ -21,7 +21,6 @@ import java.util.List;
 public class WebConfig implements WebMvcConfigurer {
 
     private final FullPathArgumentResolver fullPathArgumentResolver;
-    private final RedirectWithPathReturnValueHandler redirectWithPathReturnValueHandler;
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
@@ -29,7 +28,8 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public BeanPostProcessor requestMappingHandlerAdapterPostProcessor() {
+    public static BeanPostProcessor requestMappingHandlerAdapterPostProcessor(
+            RedirectWithPathReturnValueHandler redirectWithPathReturnValueHandler) {
         return new BeanPostProcessor() {
             @Override
             public Object postProcessAfterInitialization(Object bean, String beanName) {
