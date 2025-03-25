@@ -18,10 +18,13 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import ru.vladshi.cloudfilestorage.entity.User;
-import ru.vladshi.cloudfilestorage.exception.UserRegistrationException;
-import ru.vladshi.cloudfilestorage.repository.UserRepository;
-import ru.vladshi.cloudfilestorage.service.impl.UserServiceImpl;
+import ru.vladshi.cloudfilestorage.storage.service.MinioService;
+import ru.vladshi.cloudfilestorage.storage.service.UserPrefixService;
+import ru.vladshi.cloudfilestorage.user.entity.User;
+import ru.vladshi.cloudfilestorage.user.exception.UserRegistrationException;
+import ru.vladshi.cloudfilestorage.user.repository.UserRepository;
+import ru.vladshi.cloudfilestorage.user.service.impl.UserServiceImpl;
+import ru.vladshi.cloudfilestorage.user.service.UserService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -54,12 +57,13 @@ public class UserServiceImplTest {
     private final static String TEST_PASSWORD = "testpassword";
 
     @Configuration
-    @EnableJpaRepositories(basePackages = "ru.vladshi.cloudfilestorage.repository")
-    @EntityScan(basePackages = "ru.vladshi.cloudfilestorage.entity")
+    @EnableJpaRepositories(basePackages = "ru.vladshi.cloudfilestorage.user.repository")
+    @EntityScan(basePackages = "ru.vladshi.cloudfilestorage.user.entity")
     static class TestConfig {
         @Bean
-        public UserService userService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-            return new UserServiceImpl(userRepository, passwordEncoder);
+        public UserService userService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                                       UserPrefixService userPrefixService, MinioService minioService) {
+            return new UserServiceImpl(userRepository, passwordEncoder, userPrefixService, minioService);
         }
 
         @Bean

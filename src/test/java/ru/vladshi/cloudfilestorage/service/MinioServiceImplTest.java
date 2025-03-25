@@ -1,14 +1,10 @@
 package ru.vladshi.cloudfilestorage.service;
 
 import io.minio.*;
-import io.minio.errors.ErrorResponseException;
-import io.minio.messages.Item;
-import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -17,19 +13,8 @@ import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import ru.vladshi.cloudfilestorage.model.StorageItem;
-import ru.vladshi.cloudfilestorage.exception.*;
-import ru.vladshi.cloudfilestorage.service.impl.MinioServiceImpl;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
-import static org.junit.jupiter.api.Assertions.*;
+import ru.vladshi.cloudfilestorage.storage.service.impl.MinioServiceImpl;
+import ru.vladshi.cloudfilestorage.storage.service.MinioService;
 
 @SpringBootTest(classes = {
         MinioServiceImpl.class,

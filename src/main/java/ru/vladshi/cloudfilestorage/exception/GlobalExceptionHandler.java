@@ -1,18 +1,18 @@
 package ru.vladshi.cloudfilestorage.exception;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import ru.vladshi.cloudfilestorage.storage.exception.FileNotFoundInStorageException;
+import ru.vladshi.cloudfilestorage.storage.exception.FolderNotFoundException;
 
 @ControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(FileNotFoundInStorageException.class)
     public String handleFileNotFound(FileNotFoundInStorageException e, RedirectAttributes redirectAttributes) {
@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public String handleAccessDenied(AccessDeniedException e, RedirectAttributes redirectAttributes) {
+    public String handleAccessDenied(AccessDeniedException ignoredE, RedirectAttributes redirectAttributes) {
         redirectAttributes.addFlashAttribute("errorCode", HttpStatus.FORBIDDEN.value()); // 403
         redirectAttributes.addFlashAttribute(
                 "errorMessage", "You do not have permission to access this resource.");
@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public String handleNoResourceFound(NoResourceFoundException e, RedirectAttributes redirectAttributes) {
+    public String handleNoResourceFound(NoResourceFoundException ignoredE, RedirectAttributes redirectAttributes) {
         redirectAttributes.addFlashAttribute("errorCode", HttpStatus.NOT_FOUND.value()); // 404
         redirectAttributes.addFlashAttribute(
                 "errorMessage", "The page does not exist.");

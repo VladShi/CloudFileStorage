@@ -2,7 +2,7 @@ package ru.vladshi.cloudfilestorage.security.model;
 
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
-import ru.vladshi.cloudfilestorage.entity.User;
+import ru.vladshi.cloudfilestorage.user.entity.User;
 
 import java.util.Collection;
 

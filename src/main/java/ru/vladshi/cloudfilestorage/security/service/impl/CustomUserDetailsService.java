@@ -5,8 +5,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import ru.vladshi.cloudfilestorage.entity.User;
-import ru.vladshi.cloudfilestorage.repository.UserRepository;
+import ru.vladshi.cloudfilestorage.user.entity.User;
+import ru.vladshi.cloudfilestorage.user.repository.UserRepository;
 import ru.vladshi.cloudfilestorage.security.model.CustomUserDetails;
 
 import java.util.Collections;

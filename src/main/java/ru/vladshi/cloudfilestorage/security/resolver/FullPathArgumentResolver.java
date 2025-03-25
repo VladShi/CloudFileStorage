@@ -10,10 +10,10 @@ import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
-import ru.vladshi.cloudfilestorage.model.FullItemPath;
+import ru.vladshi.cloudfilestorage.storage.model.FullItemPath;
 import ru.vladshi.cloudfilestorage.security.annotation.FullPath;
 import ru.vladshi.cloudfilestorage.security.model.CustomUserDetails;
-import ru.vladshi.cloudfilestorage.service.UserPrefixService;
+import ru.vladshi.cloudfilestorage.storage.service.UserPrefixService;
 
 import java.util.Objects;
 

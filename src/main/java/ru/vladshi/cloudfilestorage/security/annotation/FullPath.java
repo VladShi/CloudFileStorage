@@ -1,7 +1,7 @@
 package ru.vladshi.cloudfilestorage.security.annotation;
 
 import ru.vladshi.cloudfilestorage.security.resolver.FullPathArgumentResolver;
-import ru.vladshi.cloudfilestorage.service.UserPrefixService;
+import ru.vladshi.cloudfilestorage.storage.service.UserPrefixService;
 
 import java.lang.annotation.*;
 

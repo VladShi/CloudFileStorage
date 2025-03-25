@@ -9,7 +9,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.HandlerMethodReturnValueHandler;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
-import ru.vladshi.cloudfilestorage.handler.RedirectWithPathReturnValueHandler;
+import ru.vladshi.cloudfilestorage.storage.handler.RedirectWithPathReturnValueHandler;
 import ru.vladshi.cloudfilestorage.security.resolver.FullPathArgumentResolver;
 
 import java.util.ArrayList;
