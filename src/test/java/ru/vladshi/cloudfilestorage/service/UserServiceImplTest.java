@@ -18,7 +18,7 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import ru.vladshi.cloudfilestorage.storage.service.MinioService;
+import ru.vladshi.cloudfilestorage.storage.service.FolderService;
 import ru.vladshi.cloudfilestorage.storage.service.UserPrefixService;
 import ru.vladshi.cloudfilestorage.user.entity.User;
 import ru.vladshi.cloudfilestorage.user.exception.UserRegistrationException;
@@ -62,8 +62,8 @@ public class UserServiceImplTest {
     static class TestConfig {
         @Bean
         public UserService userService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                                       UserPrefixService userPrefixService, MinioService minioService) {
-            return new UserServiceImpl(userRepository, passwordEncoder, userPrefixService, minioService);
+                                       UserPrefixService userPrefixService, FolderService folderService) {
+            return new UserServiceImpl(userRepository, passwordEncoder, userPrefixService, folderService);
         }
 
         @Bean

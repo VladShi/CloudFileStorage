@@ -12,16 +12,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import ru.vladshi.cloudfilestorage.security.annotation.FullPath;
 import ru.vladshi.cloudfilestorage.storage.annotation.RedirectWithPath;
 import ru.vladshi.cloudfilestorage.storage.exception.FileAlreadyExistsInStorageException;
 import ru.vladshi.cloudfilestorage.storage.exception.FileNotFoundInStorageException;
 import ru.vladshi.cloudfilestorage.storage.exception.StorageItemNameValidationException;
 import ru.vladshi.cloudfilestorage.storage.exception.StorageLimitExceededException;
 import ru.vladshi.cloudfilestorage.storage.model.FullItemPath;
-import ru.vladshi.cloudfilestorage.security.annotation.FullPath;
-import ru.vladshi.cloudfilestorage.storage.service.MinioService;
+import ru.vladshi.cloudfilestorage.storage.service.FileService;
+import ru.vladshi.cloudfilestorage.storage.service.StorageUsageService;
 import ru.vladshi.cloudfilestorage.storage.util.DispositionHeaderUtil;
-import ru.vladshi.cloudfilestorage.storage.validation.StorageItemNameValidator;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,7 +32,8 @@ import java.nio.file.Path;
 @RequiredArgsConstructor
 public class FileController {
 
-    private final MinioService minioService;
+    private final FileService fileService;
+    private final StorageUsageService storageUsageService;
 
     @PostMapping("/delete")
     @RedirectWithPath
@@ -40,7 +41,7 @@ public class FileController {
                            @RequestParam String fileToDelete,
                            RedirectAttributes redirectAttributes) throws Exception {
         try {
-            minioService.deleteFile(path.full(), fileToDelete);
+            fileService.delete(path.full(), fileToDelete);
         } catch (FileNotFoundInStorageException e) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to delete file. " + e.getMessage());
@@ -54,8 +55,7 @@ public class FileController {
                            @RequestParam String newFileName,
                            RedirectAttributes redirectAttributes) throws Exception {
         try {
-            StorageItemNameValidator.validate(newFileName);
-            minioService.renameFile(path.full(), fileToRename, newFileName.strip());
+            fileService.rename(path.full(), fileToRename, newFileName.strip());
         } catch (FileAlreadyExistsInStorageException | StorageItemNameValidationException e) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to rename file. " + e.getMessage());
@@ -68,8 +68,8 @@ public class FileController {
                            @RequestParam("file") MultipartFile file,
                            RedirectAttributes redirectAttributes) throws Exception {
         try {
-            minioService.checkStorageLimit(path.userPrefix(), file);
-            minioService.uploadFile(path.full(), file);
+            storageUsageService.checkLimit(path.userPrefix(), file);
+            fileService.upload(path.full(), file);
         } catch (FileAlreadyExistsInStorageException | IllegalArgumentException | StorageLimitExceededException e) {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to upload file. " + e.getMessage());
@@ -80,12 +80,12 @@ public class FileController {
     public ResponseEntity<InputStreamResource> downloadFile(@FullPath FullItemPath path,
                                                             @RequestParam String fileName) throws Exception {
 
-        InputStreamResource fileResource = minioService.downloadFile(path.full(), fileName);
+        InputStreamResource fileResource = fileService.download(path.full(), fileName);
 
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.CONTENT_DISPOSITION, DispositionHeaderUtil.build(fileName));
         headers.add(HttpHeaders.CONTENT_TYPE, getContentType(fileName));
-        long fileSize = minioService.getFileSize(path.full(), fileName);
+        long fileSize = fileService.getFileSize(path.full(), fileName);
         headers.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(fileSize));
 
         return ResponseEntity.ok()

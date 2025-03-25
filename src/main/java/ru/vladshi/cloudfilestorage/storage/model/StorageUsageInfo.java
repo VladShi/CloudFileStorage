@@ -2,7 +2,7 @@ package ru.vladshi.cloudfilestorage.storage.model;
 
 import ru.vladshi.cloudfilestorage.storage.util.SizeFormatter;
 
-public record UserStorageInfo(long currentSize, long maxSize) {
+public record StorageUsageInfo(long currentSize, long maxSize) {
 
     public String getFormattedCurrentSize() {
         return SizeFormatter.formatSize(currentSize);

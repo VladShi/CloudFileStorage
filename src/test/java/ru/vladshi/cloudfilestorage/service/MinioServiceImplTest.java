@@ -13,11 +13,8 @@ import org.testcontainers.containers.MinIOContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import ru.vladshi.cloudfilestorage.storage.service.impl.MinioServiceImpl;
-import ru.vladshi.cloudfilestorage.storage.service.MinioService;
 
 @SpringBootTest(classes = {
-        MinioServiceImpl.class,
         MinioServiceImplTest.MinioClientConfig.class
         }, properties = {
         "spring.flyway.enabled=false",
@@ -25,9 +22,6 @@ import ru.vladshi.cloudfilestorage.storage.service.MinioService;
 })
 @Testcontainers
 public class MinioServiceImplTest {
-
-    @Autowired
-    private MinioService minioService;
 
     @Autowired
     private MinioClient minioClient;
