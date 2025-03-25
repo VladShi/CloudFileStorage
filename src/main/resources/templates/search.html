@@ -58,7 +58,7 @@
                     <td class="size-column" th:text="'-'"></td>
                     <td class="actions-column">
                         <div class="actions">
-                            <form th:action="@{/download-folder}" method="get">
+                            <form th:action="@{/folder/download}" method="get">
                                 <input type="hidden" name="path" th:value="${item.getParentPath()}" />
                                 <input type="hidden" name="folderName" th:value="${item.getName()}" />
                                 <button type="submit" class="download-button" title="Download">
@@ -69,7 +69,7 @@
                                     th:attr="onclick='openRenameFolderModal(\'' + ${item.getName()} + '\', \'' + ${item.getParentPath()} + '\')'">
                                 <i class="fa-solid fa-file-pen"></i>
                             </button>
-                            <form th:action="@{/delete-folder}" method="post">
+                            <form th:action="@{/folder/delete}" method="post">
                                 <input type="hidden" name="path" th:value="${item.getParentPath()}" />
                                 <input type="hidden" name="folderToDelete" th:value="${item.getName()}" required />
                                 <button class="delete-button" title="Delete">
@@ -87,7 +87,7 @@
                     <td class="size-column" th:text="${item.getFormattedSize()}"></td>
                     <td class="actions-column">
                         <div class="actions">
-                            <form th:action="@{/download-file}" method="get">
+                            <form th:action="@{/file/download}" method="get">
                                 <input type="hidden" name="path" th:value="${item.getParentPath()}" />
                                 <input type="hidden" name="fileName" th:value="${item.getName()}" />
                                 <button type="submit" class="download-button" title="Download">
@@ -98,7 +98,7 @@
                                     th:attr="onclick='openRenameFileModal(\'' + ${item.getName()} + '\', \'' + ${item.getParentPath()} + '\')'">
                                 <i class="fa-solid fa-file-pen"></i>
                             </button>
-                            <form th:action="@{/delete-file}" method="post">
+                            <form th:action="@{/file/delete}" method="post">
                                 <input type="hidden" name="path" th:value="${item.getParentPath()}" />
                                 <input type="hidden" name="fileToDelete" th:value="${item.getName()}" required />
                                 <button class="delete-button" title="Delete">
@@ -118,7 +118,7 @@
     <div id="renameFolderModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeRenameFolderModal()">&times;</span>
-            <form th:action="@{/rename-folder}" method="post">
+            <form th:action="@{/folder/rename}" method="post">
                 <input type="hidden" id="folder-rename-path" name="path"/>
                 <input type="hidden" id="folderToRename" name="folderToRename" />
                 <input type="text" id="newFolderName" name="newFolderName" placeholder="New folder name" required />
@@ -131,7 +131,7 @@
     <div id="renameFileModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeRenameFileModal()">&times;</span>
-            <form id="renameFileForm" th:action="@{/rename-file}" method="post">
+            <form id="renameFileForm" th:action="@{/file/rename}" method="post">
                 <input type="hidden" id="file-rename-path" name="path" />
                 <input type="hidden" id="fileToRename" name="fileToRename" />
                 <input type="hidden" id="newFileName" name="newFileName" />
