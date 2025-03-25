@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.vladshi.cloudfilestorage.security.annotation.FullPath;
-import ru.vladshi.cloudfilestorage.storage.annotation.RedirectWithPath;
 import ru.vladshi.cloudfilestorage.storage.exception.FolderAlreadyExistsException;
 import ru.vladshi.cloudfilestorage.storage.exception.ObjectDeletionException;
 import ru.vladshi.cloudfilestorage.storage.exception.StorageItemNameValidationException;
@@ -22,6 +21,8 @@ import ru.vladshi.cloudfilestorage.storage.model.FullItemPath;
 import ru.vladshi.cloudfilestorage.storage.service.FolderService;
 import ru.vladshi.cloudfilestorage.storage.service.StorageUsageService;
 import ru.vladshi.cloudfilestorage.storage.util.DispositionHeaderUtil;
+
+import static ru.vladshi.cloudfilestorage.storage.util.RedirectUtil.redirectWithPath;
 
 @Controller
 @RequestMapping("folder")
@@ -32,8 +33,7 @@ public class FolderController {
     private final StorageUsageService storageUsageService;
 
     @PostMapping("/create")
-    @RedirectWithPath
-    public void createFolder(@FullPath FullItemPath path,
+    public String createFolder(@FullPath FullItemPath path,
                              @RequestParam String newFolderName,
                              RedirectAttributes redirectAttributes) throws Exception {
         try {
@@ -42,11 +42,11 @@ public class FolderController {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to create folder. " + e.getMessage());
         }
+        return redirectWithPath(path.relative());
     }
 
     @PostMapping("/delete")
-    @RedirectWithPath
-    public void deleteFolder(@FullPath FullItemPath path,
+    public String deleteFolder(@FullPath FullItemPath path,
                              @RequestParam String folderToDelete,
                              RedirectAttributes redirectAttributes) throws Exception {
         try {
@@ -55,11 +55,11 @@ public class FolderController {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to delete folder. " + e.getMessage());
         }
+        return redirectWithPath(path.relative());
     }
 
     @PostMapping("/rename")
-    @RedirectWithPath
-    public void renameFolder(@FullPath FullItemPath path,
+    public String renameFolder(@FullPath FullItemPath path,
                              @RequestParam String folderToRename,
                              @RequestParam String newFolderName,
                              RedirectAttributes redirectAttributes) throws Exception {
@@ -69,11 +69,11 @@ public class FolderController {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to rename folder. " + e.getMessage());
         }
+        return redirectWithPath(path.relative());
     }
 
     @PostMapping("/upload")
-    @RedirectWithPath
-    public void uploadFolder(@FullPath FullItemPath path,
+    public String uploadFolder(@FullPath FullItemPath path,
                              @RequestParam String folderName,
                              @RequestParam("files") MultipartFile[] files,
                              RedirectAttributes redirectAttributes) throws Exception {
@@ -85,6 +85,7 @@ public class FolderController {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to upload folder. " + e.getMessage());
         }
+        return redirectWithPath(path.relative());
     }
 
     @GetMapping("/download")

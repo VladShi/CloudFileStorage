@@ -198,7 +198,7 @@ public class MinioServiceImplTest {
 
         assertFalse(items.isEmpty(), "Список не должен быть пустым");
         assertEquals(1, items.size(), "Размер списка элементов должен быть равен 1");
-        assertEquals(FOLDER_1_LVL_PATH, items.getFirst().relativePath(), "Должны получить внутреннюю папку");
+        assertEquals(FOLDER_1_LVL_PATH, items.getFirst().relative(), "Должны получить внутреннюю папку");
     }
 
     @Test
@@ -1039,8 +1039,8 @@ public class MinioServiceImplTest {
         List<StorageItem> results = minioService.searchItems(TEST_USER_PREFIX, query);
 
         assertEquals(2, results.size());
-        assertEquals("/мокрые/", results.get(0).relativePath());
-        assertEquals("/мокрые/мокрый зонт.jpg", results.get(1).relativePath());
+        assertEquals("/мокрые/", results.get(0).relative());
+        assertEquals("/мокрые/мокрый зонт.jpg", results.get(1).relative());
     }
 
     @Test
@@ -1073,8 +1073,8 @@ public class MinioServiceImplTest {
         List<StorageItem> results = minioService.searchItems(TEST_USER_PREFIX, query);
 
         assertEquals(2, results.size());
-        assertEquals("/file1.txt", results.get(0).relativePath());
-        assertEquals("/file2.txt", results.get(1).relativePath());
+        assertEquals("/file1.txt", results.get(0).relative());
+        assertEquals("/file2.txt", results.get(1).relative());
     }
 
     @Test
@@ -1111,8 +1111,8 @@ public class MinioServiceImplTest {
 
         // Assert
         assertEquals(2, results.size());
-        assertEquals("/File2.txt", results.get(0).relativePath());
-        assertEquals("/file1.txt", results.get(1).relativePath());
+        assertEquals("/File2.txt", results.get(0).relative());
+        assertEquals("/file1.txt", results.get(1).relative());
     }
 
     private boolean folderExists(String folderPath) {

@@ -29,8 +29,8 @@ public class StorageMainController {
         List<StorageItem> storageItems = folderService.getFolderContents(path.full());
         StorageUsageInfo storageInfo = storageUsageService.getInfo(path.userPrefix());
 
-        model.addAttribute("path", path.relativePath());
-        model.addAttribute("breadcrumbs", BreadcrumbUtil.buildBreadcrumbs(path.relativePath()));
+        model.addAttribute("path", path.relative());
+        model.addAttribute("breadcrumbs", BreadcrumbUtil.buildBreadcrumbs(path.relative()));
         model.addAttribute("items", storageItems);
         model.addAttribute("storageInfo", storageInfo);
 

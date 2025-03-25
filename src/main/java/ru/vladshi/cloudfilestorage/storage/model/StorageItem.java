@@ -6,7 +6,7 @@ public record StorageItem(String relativePath, boolean isFolder, long size) {
 
     public String getName() {
         if (relativePath == null || relativePath.isBlank()) {
-            throw new IllegalArgumentException("Object relativePath cannot be null or empty");
+            throw new IllegalArgumentException("Object relative cannot be null or empty");
         }
 
         String pathWithName = isFolder ? relativePath.substring(0, relativePath.length() - 1) : relativePath;
@@ -18,7 +18,7 @@ public record StorageItem(String relativePath, boolean isFolder, long size) {
 
     public String getParentPath() {
         if (relativePath == null || relativePath.isBlank()) {
-            throw new IllegalArgumentException("Object relativePath cannot be null or empty");
+            throw new IllegalArgumentException("Object relative cannot be null or empty");
         }
 
         String pathWithName = isFolder ? relativePath.substring(0, relativePath.length() - 1) : relativePath;

@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.vladshi.cloudfilestorage.security.annotation.FullPath;
-import ru.vladshi.cloudfilestorage.storage.annotation.RedirectWithPath;
 import ru.vladshi.cloudfilestorage.storage.exception.FileAlreadyExistsInStorageException;
 import ru.vladshi.cloudfilestorage.storage.exception.FileNotFoundInStorageException;
 import ru.vladshi.cloudfilestorage.storage.exception.StorageItemNameValidationException;
@@ -27,6 +26,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static ru.vladshi.cloudfilestorage.storage.util.RedirectUtil.redirectWithPath;
+
 @Controller
 @RequestMapping("/file")
 @RequiredArgsConstructor
@@ -36,8 +37,7 @@ public class FileController {
     private final StorageUsageService storageUsageService;
 
     @PostMapping("/delete")
-    @RedirectWithPath
-    public void deleteFile(@FullPath FullItemPath path,
+    public String deleteFile(@FullPath FullItemPath path,
                            @RequestParam String fileToDelete,
                            RedirectAttributes redirectAttributes) throws Exception {
         try {
@@ -46,11 +46,11 @@ public class FileController {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to delete file. " + e.getMessage());
         }
+        return redirectWithPath(path.relative());
     }
 
     @PostMapping("/rename")
-    @RedirectWithPath
-    public void renameFile(@FullPath FullItemPath path,
+    public String renameFile(@FullPath FullItemPath path,
                            @RequestParam String fileToRename,
                            @RequestParam String newFileName,
                            RedirectAttributes redirectAttributes) throws Exception {
@@ -60,11 +60,11 @@ public class FileController {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to rename file. " + e.getMessage());
         }
+        return redirectWithPath(path.relative());
     }
 
     @PostMapping("/upload")
-    @RedirectWithPath
-    public void uploadFile(@FullPath FullItemPath path,
+    public String uploadFile(@FullPath FullItemPath path,
                            @RequestParam("file") MultipartFile file,
                            RedirectAttributes redirectAttributes) throws Exception {
         try {
@@ -74,6 +74,7 @@ public class FileController {
             redirectAttributes.addFlashAttribute(
                     "errorMessage", "Failed to upload file. " + e.getMessage());
         }
+        return redirectWithPath(path.relative());
     }
 
     @GetMapping("/download")
