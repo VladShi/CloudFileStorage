@@ -15,7 +15,7 @@ import ru.vladshi.cloudfilestorage.security.annotation.FullPath;
 import ru.vladshi.cloudfilestorage.storage.model.FullItemPath;
 import ru.vladshi.cloudfilestorage.storage.service.FolderService;
 import ru.vladshi.cloudfilestorage.storage.service.StorageUsageService;
-import ru.vladshi.cloudfilestorage.storage.util.DispositionHeaderUtil;
+import ru.vladshi.cloudfilestorage.storage.util.HttpHeaderUtil;
 
 import static ru.vladshi.cloudfilestorage.storage.util.RedirectUtil.redirectWithPath;
 
@@ -63,7 +63,7 @@ public class FolderController {
         InputStreamResource folderResource = folderService.download(path.full(), folderName);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, DispositionHeaderUtil.build(folderName) + ".zip");
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, HttpHeaderUtil.buildContentDisposition(folderName) + ".zip");
 
         return ResponseEntity.ok()
                 .headers(headers)

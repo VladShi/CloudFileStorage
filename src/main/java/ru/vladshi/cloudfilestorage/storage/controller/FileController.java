@@ -3,7 +3,6 @@ package ru.vladshi.cloudfilestorage.storage.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,11 +14,7 @@ import ru.vladshi.cloudfilestorage.security.annotation.FullPath;
 import ru.vladshi.cloudfilestorage.storage.model.FullItemPath;
 import ru.vladshi.cloudfilestorage.storage.service.FileService;
 import ru.vladshi.cloudfilestorage.storage.service.StorageUsageService;
-import ru.vladshi.cloudfilestorage.storage.util.DispositionHeaderUtil;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import ru.vladshi.cloudfilestorage.storage.util.HttpHeaderUtil;
 
 import static ru.vladshi.cloudfilestorage.storage.util.RedirectUtil.redirectWithPath;
 
@@ -59,22 +54,13 @@ public class FileController {
         InputStreamResource fileResource = fileService.download(path.full(), fileName);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, DispositionHeaderUtil.build(fileName));
-        headers.add(HttpHeaders.CONTENT_TYPE, getContentType(fileName));
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, HttpHeaderUtil.buildContentDisposition(fileName));
+        headers.add(HttpHeaders.CONTENT_TYPE, HttpHeaderUtil.buildContentType(fileName));
         long fileSize = fileService.getFileSize(path.full(), fileName);
         headers.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(fileSize));
 
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(fileResource);
-    }
-
-    private String getContentType(String fileName) {
-        try {
-            String mimeType = Files.probeContentType(Path.of(fileName));
-            return mimeType != null ? mimeType : MediaType.APPLICATION_OCTET_STREAM_VALUE;
-        } catch (IOException e) {
-            return MediaType.APPLICATION_OCTET_STREAM_VALUE;
-        }
     }
 }
