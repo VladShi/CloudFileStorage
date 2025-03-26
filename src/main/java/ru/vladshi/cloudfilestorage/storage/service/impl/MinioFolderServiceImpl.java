@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.vladshi.cloudfilestorage.storage.exception.FolderAlreadyExistsException;
 import ru.vladshi.cloudfilestorage.storage.exception.FolderNotFoundException;
+import ru.vladshi.cloudfilestorage.storage.exception.FolderUploadingException;
 import ru.vladshi.cloudfilestorage.storage.exception.ObjectDeletionException;
 import ru.vladshi.cloudfilestorage.storage.model.StorageItem;
 import ru.vladshi.cloudfilestorage.storage.service.AbstractMinioService;
@@ -72,7 +73,7 @@ public class MinioFolderServiceImpl extends AbstractMinioService implements Fold
         );
 
         if (!foundItems.iterator().hasNext()) {
-            throw new FolderNotFoundException("Folder does not exist.");
+            throw new FolderNotFoundException(PathUtil.removeRootFolder(path));
         }
 
         for (Result<Item> foundItem : foundItems) {
@@ -127,7 +128,7 @@ public class MinioFolderServiceImpl extends AbstractMinioService implements Fold
         }
 
         if (ItemsToDelete.isEmpty()) {
-            throw new FolderNotFoundException("Folder does not exist: " + path + folderToDeleteName);
+            throw new FolderNotFoundException(PathUtil.removeRootFolder(folderToDeleteFullPath));
         }
 
         batchDeleteObjects(ItemsToDelete);
@@ -176,8 +177,7 @@ public class MinioFolderServiceImpl extends AbstractMinioService implements Fold
         }
 
         if (itemsToDelete.isEmpty()) {
-            String relativePath = PathUtil.removeRootFolder(path);
-            throw new FolderNotFoundException("Folder does not exist: " + relativePath + oldFolderName);
+            throw new FolderNotFoundException(PathUtil.removeRootFolder(fullOldPath));
         }
 
         batchDeleteObjects(itemsToDelete);
@@ -186,7 +186,7 @@ public class MinioFolderServiceImpl extends AbstractMinioService implements Fold
     @Override
     public void upload(String path, String folderToUploadName, MultipartFile[] files) throws Exception {
         if (files == null || files.length == 0) {
-            throw new IllegalArgumentException("Folder cannot be null or empty. Choose not empty folder.");
+            throw new FolderUploadingException("Folder cannot be null or empty. Choose not empty folder.");
         }
 
         StorageItemNameValidator.validate(folderToUploadName);
@@ -332,14 +332,13 @@ public class MinioFolderServiceImpl extends AbstractMinioService implements Fold
 
     private void checkFolderExists(String path) throws Exception {
         if (!folderExists(path)) {
-            throw new FolderNotFoundException("Folder does not exist.");
+            throw new FolderNotFoundException(PathUtil.removeRootFolder(path));
         }
     }
 
     private void checkFolderNotExists(String fullFolderPath) throws Exception {
         if (folderExists(fullFolderPath)) {
-            throw new FolderAlreadyExistsException(
-                    "Folder already exists: " + PathUtil.extractNameFromPath(fullFolderPath));
+            throw new FolderAlreadyExistsException(PathUtil.extractNameFromPath(fullFolderPath));
         }
     }
 
@@ -375,8 +374,7 @@ public class MinioFolderServiceImpl extends AbstractMinioService implements Fold
             for (Result<DeleteError> result : deletingResults) {
                 DeleteError error = result.get();
                 String relativePath = PathUtil.removeRootFolder(error.objectName());
-                Exception objectDeletionException = new ObjectDeletionException(
-                        "Failed to delete object: " + relativePath);
+                Exception objectDeletionException = new ObjectDeletionException(relativePath);
                 log.error("Failed to delete object: {}. {}",
                         error.objectName(), error.message(), objectDeletionException);
                 throw objectDeletionException;

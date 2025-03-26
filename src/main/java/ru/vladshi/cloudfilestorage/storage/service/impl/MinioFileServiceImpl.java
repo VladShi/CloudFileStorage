@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.vladshi.cloudfilestorage.storage.exception.FileAlreadyExistsInStorageException;
 import ru.vladshi.cloudfilestorage.storage.exception.FileNotFoundInStorageException;
+import ru.vladshi.cloudfilestorage.storage.exception.FileUploadingException;
 import ru.vladshi.cloudfilestorage.storage.service.AbstractMinioService;
 import ru.vladshi.cloudfilestorage.storage.service.FileService;
 import ru.vladshi.cloudfilestorage.storage.util.PathUtil;
@@ -26,7 +27,7 @@ public class MinioFileServiceImpl extends AbstractMinioService implements FileSe
     @Override
     public void upload(String path, MultipartFile file) throws Exception {
         if (file == null || file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
-            throw new IllegalArgumentException("File cannot be null or nameless. Choose a file to upload.");
+            throw new FileUploadingException("File cannot be null or nameless. Choose a file to upload.");
         }
 
         String fileName = file.getOriginalFilename();
@@ -108,7 +109,7 @@ public class MinioFileServiceImpl extends AbstractMinioService implements FileSe
 
         } catch (ErrorResponseException e) {
             if (e.errorResponse().code().equals("NoSuchKey")) {
-                throw new FileNotFoundInStorageException("File not found: " + fileName);
+                throw new FileNotFoundInStorageException(fileName);
             }
             throw e;
         }
@@ -128,15 +129,13 @@ public class MinioFileServiceImpl extends AbstractMinioService implements FileSe
 
     private void checkFileExists(String fullFilePath) throws Exception {
         if (!fileExists(fullFilePath)) {
-            throw new FileNotFoundInStorageException(
-                    "File does not exist: " + PathUtil.extractNameFromPath(fullFilePath));
+            throw new FileNotFoundInStorageException(PathUtil.extractNameFromPath(fullFilePath));
         }
     }
 
     private void checkFileNotExists(String fullFilePath) throws Exception {
         if (fileExists(fullFilePath)) {
-            throw new FileAlreadyExistsInStorageException(
-                    "File already exists: " + PathUtil.extractNameFromPath(fullFilePath));
+            throw new FileAlreadyExistsInStorageException(PathUtil.extractNameFromPath(fullFilePath));
         }
     }
 

@@ -11,12 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.vladshi.cloudfilestorage.security.annotation.FullPath;
-import ru.vladshi.cloudfilestorage.storage.exception.FileAlreadyExistsInStorageException;
-import ru.vladshi.cloudfilestorage.storage.exception.FileNotFoundInStorageException;
-import ru.vladshi.cloudfilestorage.storage.exception.StorageItemNameValidationException;
-import ru.vladshi.cloudfilestorage.storage.exception.StorageLimitExceededException;
 import ru.vladshi.cloudfilestorage.storage.model.FullItemPath;
 import ru.vladshi.cloudfilestorage.storage.service.FileService;
 import ru.vladshi.cloudfilestorage.storage.service.StorageUsageService;
@@ -37,43 +32,23 @@ public class FileController {
     private final StorageUsageService storageUsageService;
 
     @PostMapping("/delete")
-    public String deleteFile(@FullPath FullItemPath path,
-                           @RequestParam String fileToDelete,
-                           RedirectAttributes redirectAttributes) throws Exception {
-        try {
-            fileService.delete(path.full(), fileToDelete);
-        } catch (FileNotFoundInStorageException e) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage", "Failed to delete file. " + e.getMessage());
-        }
+    public String deleteFile(@FullPath FullItemPath path, @RequestParam String fileToDelete) throws Exception {
+        fileService.delete(path.full(), fileToDelete);
         return redirectWithPath(path.relative());
     }
 
     @PostMapping("/rename")
     public String renameFile(@FullPath FullItemPath path,
-                           @RequestParam String fileToRename,
-                           @RequestParam String newFileName,
-                           RedirectAttributes redirectAttributes) throws Exception {
-        try {
-            fileService.rename(path.full(), fileToRename, newFileName.strip());
-        } catch (FileAlreadyExistsInStorageException | StorageItemNameValidationException e) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage", "Failed to rename file. " + e.getMessage());
-        }
+                             @RequestParam String fileToRename,
+                             @RequestParam String newFileName) throws Exception {
+        fileService.rename(path.full(), fileToRename, newFileName.strip());
         return redirectWithPath(path.relative());
     }
 
     @PostMapping("/upload")
-    public String uploadFile(@FullPath FullItemPath path,
-                           @RequestParam("file") MultipartFile file,
-                           RedirectAttributes redirectAttributes) throws Exception {
-        try {
-            storageUsageService.checkLimit(path.userPrefix(), file);
-            fileService.upload(path.full(), file);
-        } catch (FileAlreadyExistsInStorageException | IllegalArgumentException | StorageLimitExceededException e) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage", "Failed to upload file. " + e.getMessage());
-        }
+    public String uploadFile(@FullPath FullItemPath path, @RequestParam("file") MultipartFile file) throws Exception {
+        storageUsageService.checkLimit(path.userPrefix(), file);
+        fileService.upload(path.full(), file);
         return redirectWithPath(path.relative());
     }
 

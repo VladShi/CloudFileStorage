@@ -10,7 +10,7 @@ public final class StorageItemNameValidator {
     private StorageItemNameValidator() {
     }
 
-    public static void validate(String name) {
+    public static void validate(String name) throws StorageItemNameValidationException {
         if (name == null || name.isBlank()) {
             throw new StorageItemNameValidationException("Name cannot be empty");
         }

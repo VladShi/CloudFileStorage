@@ -11,12 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.vladshi.cloudfilestorage.security.annotation.FullPath;
-import ru.vladshi.cloudfilestorage.storage.exception.FolderAlreadyExistsException;
-import ru.vladshi.cloudfilestorage.storage.exception.ObjectDeletionException;
-import ru.vladshi.cloudfilestorage.storage.exception.StorageItemNameValidationException;
-import ru.vladshi.cloudfilestorage.storage.exception.StorageLimitExceededException;
 import ru.vladshi.cloudfilestorage.storage.model.FullItemPath;
 import ru.vladshi.cloudfilestorage.storage.service.FolderService;
 import ru.vladshi.cloudfilestorage.storage.service.StorageUsageService;
@@ -33,58 +28,31 @@ public class FolderController {
     private final StorageUsageService storageUsageService;
 
     @PostMapping("/create")
-    public String createFolder(@FullPath FullItemPath path,
-                             @RequestParam String newFolderName,
-                             RedirectAttributes redirectAttributes) throws Exception {
-        try {
-            folderService.create(path.full(), newFolderName.strip());
-        } catch (FolderAlreadyExistsException | StorageItemNameValidationException e) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage", "Failed to create folder. " + e.getMessage());
-        }
+    public String createFolder(@FullPath FullItemPath path, @RequestParam String newFolderName) throws Exception {
+        folderService.create(path.full(), newFolderName.strip());
         return redirectWithPath(path.relative());
     }
 
     @PostMapping("/delete")
-    public String deleteFolder(@FullPath FullItemPath path,
-                             @RequestParam String folderToDelete,
-                             RedirectAttributes redirectAttributes) throws Exception {
-        try {
-            folderService.delete(path.full(), folderToDelete);
-        } catch (ObjectDeletionException e) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage", "Failed to delete folder. " + e.getMessage());
-        }
+    public String deleteFolder(@FullPath FullItemPath path, @RequestParam String folderToDelete) throws Exception {
+        folderService.delete(path.full(), folderToDelete);
         return redirectWithPath(path.relative());
     }
 
     @PostMapping("/rename")
     public String renameFolder(@FullPath FullItemPath path,
-                             @RequestParam String folderToRename,
-                             @RequestParam String newFolderName,
-                             RedirectAttributes redirectAttributes) throws Exception {
-        try {
-            folderService.rename(path.full(), folderToRename, newFolderName.strip());
-        } catch (FolderAlreadyExistsException | ObjectDeletionException | StorageItemNameValidationException e) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage", "Failed to rename folder. " + e.getMessage());
-        }
+                               @RequestParam String folderToRename,
+                               @RequestParam String newFolderName) throws Exception {
+        folderService.rename(path.full(), folderToRename, newFolderName.strip());
         return redirectWithPath(path.relative());
     }
 
     @PostMapping("/upload")
     public String uploadFolder(@FullPath FullItemPath path,
-                             @RequestParam String folderName,
-                             @RequestParam("files") MultipartFile[] files,
-                             RedirectAttributes redirectAttributes) throws Exception {
-        try {
-            storageUsageService.checkLimit(path.userPrefix(), files);
-            folderService.upload(path.full(), folderName, files);
-        } catch (FolderAlreadyExistsException | IllegalArgumentException
-                 | StorageItemNameValidationException | StorageLimitExceededException e) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage", "Failed to upload folder. " + e.getMessage());
-        }
+                               @RequestParam String folderName,
+                               @RequestParam("files") MultipartFile[] files) throws Exception {
+        storageUsageService.checkLimit(path.userPrefix(), files);
+        folderService.upload(path.full(), folderName, files);
         return redirectWithPath(path.relative());
     }
 

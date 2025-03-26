@@ -1,7 +1,7 @@
 package ru.vladshi.cloudfilestorage.storage.exception;
 
-public class ObjectDeletionException extends RuntimeException {
-    public ObjectDeletionException(String message) {
-        super(message);
+public class ObjectDeletionException extends StorageException {
+    public ObjectDeletionException(String path) {
+        super("Failed to delete object: %s".formatted(path));
     }
 }
