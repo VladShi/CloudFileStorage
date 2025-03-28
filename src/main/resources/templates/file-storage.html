@@ -45,7 +45,7 @@
                     <i class="fa-solid fa-folder-plus"></i> Create Folder
                 </button>
                 <br>
-                <form id="uploadFileForm" th:action="@{/upload-file}" method="post" enctype="multipart/form-data">
+                <form id="uploadFileForm" th:action="@{/file/upload}" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="path" th:value="${path}" />
                     <input type="file" id="fileInput" name="file" required style="display: none;"
                            onchange="uploadFile()"/>
@@ -54,7 +54,7 @@
                         <i class="fa-solid fa-file-arrow-up"></i> Upload File
                     </button>
                 </form>
-                <form id="uploadFolderForm" th:action="@{/upload-folder}" method="post" enctype="multipart/form-data">
+                <form id="uploadFolderForm" th:action="@{/folder/upload}" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="path" th:value="${path}" />
                     <input type="file" id="folderInput" name="files" webkitdirectory directory style="display: none;"
                            onchange="uploadFolder()"/>
@@ -112,7 +112,7 @@
                         <td class="size-column" th:text="'-'"></td>
                         <td class="actions-column">
                             <div class="actions">
-                                <form th:action="@{/download-folder}" method="get">
+                                <form th:action="@{/folder/download}" method="get">
                                     <input type="hidden" name="path" th:value="${path}" />
                                     <input type="hidden" name="folderName" th:value="${item.getName()}" />
                                     <button type="submit" class="download-button" title="Download">
@@ -124,7 +124,7 @@
 <!--                                    <i class="fa-solid fa-pencil"></i> <i class="fa-solid fa-pen-fancy"></i>-->
                                     <i class="fa-solid fa-file-pen"></i>
                                 </button>
-                                <form th:action="@{/delete-folder}" method="post">
+                                <form th:action="@{/folder/delete}" method="post">
                                     <input type="hidden" name="path" th:value="${path}" />
                                     <input type="hidden" name="folderToDelete" th:value="${item.getName()}" required />
                                     <button class="delete-button" title="Delete">
@@ -143,7 +143,7 @@
                         <td class="size-column" th:text="${item.getFormattedSize()}"></td>
                         <td class="actions-column">
                             <div class="actions">
-                                <form th:action="@{/download-file}" method="get">
+                                <form th:action="@{/file/download}" method="get">
                                     <input type="hidden" name="path" th:value="${path}" />
                                     <input type="hidden" name="fileName" th:value="${item.getName()}" />
                                     <button type="submit" class="download-button" title="Download">
@@ -154,7 +154,7 @@
                                         th:attr="onclick='openRenameFileModal(\'' + ${item.getName()} + '\')'">
                                     <i class="fa-solid fa-file-pen"></i>
                                 </button>
-                                <form th:action="@{/delete-file}" method="post">
+                                <form th:action="@{/file/delete}" method="post">
                                     <input type="hidden" name="path" th:value="${path}" />
                                     <input type="hidden" name="fileToDelete" th:value="${item.getName()}" required />
                                     <button class="delete-button" title="Delete">
@@ -174,7 +174,7 @@
     <div id="createFolderModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeCreateFolderModal()">&times;</span>
-            <form th:action="@{/create-folder}" method="post">
+            <form th:action="@{/folder/create}" method="post">
                 <input type="hidden" name="path" th:value="${path}" />
                 <input type="text" name="newFolderName" placeholder="New folder name" required />
                 <button type="submit" class="action-button">Create</button>
@@ -186,7 +186,7 @@
     <div id="renameFolderModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeRenameFolderModal()">&times;</span>
-            <form th:action="@{/rename-folder}" method="post">
+            <form th:action="@{/folder/rename}" method="post">
                 <input type="hidden" name="path" th:value="${path}" />
                 <input type="hidden" id="folderToRename" name="folderToRename" />
                 <input type="text" id="newFolderName" name="newFolderName" placeholder="New folder name" required />
@@ -199,7 +199,7 @@
     <div id="renameFileModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeRenameFileModal()">&times;</span>
-            <form id="renameFileForm" th:action="@{/rename-file}" method="post">
+            <form id="renameFileForm" th:action="@{/file/rename}" method="post">
                 <input type="hidden" name="path" th:value="${path}" />
                 <input type="hidden" id="fileToRename" name="fileToRename" />
                 <input type="hidden" id="newFileName" name="newFileName" />
