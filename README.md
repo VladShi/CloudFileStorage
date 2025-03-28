@@ -55,7 +55,7 @@
 URL - '/'
 - Отображает список файлов и папок пользователя в виде файловой структуры (аналогично Windows Explorer).
 - Отображает максимальный и занятый объем хранилища пользователя.
-- Поддерживает загрузку файлов и папок (POST-запросы на `/upload-file`, `/upload-folder`), скачивание (GET-запросы на `/download-file`, `/download-folder`), удаление (POST-запросы на `/delete-folder`, `/delete-file`), переименование (POST-запросы на `/rename-folder`, `/rename-file`) и создание папки (POST-запросы на `/create-folder`).
+- Поддерживает загрузку файлов и папок (POST-запросы на `/file/upload`, `/folder/upload`), скачивание (GET-запросы на `/file/download`, `/folder/download`), удаление (POST-запросы на `/folder/delete`, `/file/delete`), переименование (POST-запросы на `/folder/rename`, `/file/rename`) и создание папки (POST-запросы на `/folder/create`).
 - Навигация по папкам через GET-параметр `path` (например, `/?path=/folder/subfolder`).
 
 ### Страница поиска
