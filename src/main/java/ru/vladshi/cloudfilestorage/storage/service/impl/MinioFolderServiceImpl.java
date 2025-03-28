@@ -255,7 +255,7 @@ public class MinioFolderServiceImpl extends AbstractMinioService implements Fold
         Path tempZipFile = null;
 
         try {
-            checkFolderExists(path);
+            checkFolderExists(fullFolderPath);
 
             Iterable<Result<Item>> ItemsToDownload = minioClient.listObjects(
                     ListObjectsArgs.builder()

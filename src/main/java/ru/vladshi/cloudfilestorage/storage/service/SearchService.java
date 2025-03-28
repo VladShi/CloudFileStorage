@@ -6,6 +6,6 @@ import java.util.List;
 
 public interface SearchService {
 
-    List<StorageItem> searchItems(String userPrefix, String query) throws Exception;
+    List<StorageItem> searchItems(String basePath, String query) throws Exception;
 
 }

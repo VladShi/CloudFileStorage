@@ -1,8 +1,9 @@
-package ru.vladshi.cloudfilestorage.service;
+package ru.vladshi.cloudfilestorage.user.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -24,7 +25,6 @@ import ru.vladshi.cloudfilestorage.user.entity.User;
 import ru.vladshi.cloudfilestorage.user.exception.UserRegistrationException;
 import ru.vladshi.cloudfilestorage.user.repository.UserRepository;
 import ru.vladshi.cloudfilestorage.user.service.impl.UserServiceImpl;
-import ru.vladshi.cloudfilestorage.user.service.UserService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,9 +52,10 @@ public class UserServiceImplTest {
 //                    cmd -> cmd.withName("mysql-test"))
             ;
 
-    private static User testuser;
+    private static User testUser;
     private final static String TEST_USERNAME = "testusername";
     private final static String TEST_PASSWORD = "testpassword";
+    private static final String TEST_USER_PREFIX = "1-testusername/";
 
     @Configuration
     @EnableJpaRepositories(basePackages = "ru.vladshi.cloudfilestorage.user.repository")
@@ -69,6 +70,20 @@ public class UserServiceImplTest {
         @Bean
         public PasswordEncoder passwordEncoder() {
             return new BCryptPasswordEncoder();
+        }
+
+        @Bean
+        public UserPrefixService userPrefixService() {
+            UserPrefixService mock = Mockito.mock(UserPrefixService.class);
+            Mockito.when(mock.buildUserPrefix(1L, "testusername")).thenReturn(TEST_USER_PREFIX);
+            return mock;
+        }
+
+        @Bean
+        public FolderService folderService() throws Exception {
+            FolderService mock = Mockito.mock(FolderService.class);
+            Mockito.doNothing().when(mock).createUserRootFolder(Mockito.anyString());
+            return mock;
         }
     }
 
@@ -86,45 +101,32 @@ public class UserServiceImplTest {
     void setUp() {
         userRepository.deleteAll();
 
-        testuser = new User();
-        testuser.setUsername(TEST_USERNAME);
-        testuser.setPassword(TEST_PASSWORD);
+        testUser = new User();
+        testUser.setUsername(TEST_USERNAME);
+        testUser.setPassword(TEST_PASSWORD);
     }
 
     @Test
-    @DisplayName("Should register user successfully")
+    @DisplayName("Успешная регистрация пользователя")
     public void shouldRegisterUserSuccessfully() {
 
-        userService.registerUser(testuser);
+        userService.registerUser(testUser);
 
-        assertThat(userRepository.findByUsername(TEST_USERNAME)).isNotNull();
+        User savedUser = userRepository.findByUsername(TEST_USERNAME);
+        assertThat(savedUser).isNotNull();
+        assertThat(savedUser.getUsername()).isEqualTo(TEST_USERNAME);
     }
 
     @Test
-    @DisplayName("Should throw UserRegistrationException when registering user with duplicate username")
+    @DisplayName("Регистрация пользователя с уже используемым именем")
     public void shouldThrowUserRegistrationExceptionWhenRegisteringUserWithDuplicateUsername() {
 
-        userService.registerUser(testuser);
-
+        userService.registerUser(testUser);
         User userWithDuplicateUsername = new User();
         userWithDuplicateUsername.setUsername(TEST_USERNAME);
         userWithDuplicateUsername.setPassword("password2");
 
-        assertThrows(UserRegistrationException.class, () -> userService.registerUser(userWithDuplicateUsername));
+        assertThrows(UserRegistrationException.class, () -> userService.registerUser(userWithDuplicateUsername),
+                " Должно выброситься исключение при попытке регистрации пользователя с уже занятым именем");
     }
-
-//    @Test // TODO убрать
-//    @DisplayName("Should load user by username successfully")
-//    public void shouldLoadUserByUsernameSuccessfully() {
-//
-//        userService.registerUser(testuser);
-//
-//        UserDetails userDetails = userService.loadUserByUsername(TEST_USERNAME);
-//
-//
-//        assertThat(userDetails).isNotNull();
-//        assertThat(userDetails.getUsername()).isEqualTo(TEST_USERNAME);
-//        assertThat(userDetails.getPassword()).isEqualTo(testuser.getPassword());
-//        assertThat(userDetails.getAuthorities()).isEmpty();
-//    }
 }

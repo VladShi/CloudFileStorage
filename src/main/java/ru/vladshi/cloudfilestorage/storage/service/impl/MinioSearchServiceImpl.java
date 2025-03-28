@@ -22,7 +22,7 @@ public class MinioSearchServiceImpl extends AbstractMinioService implements Sear
     }
 
     @Override
-    public List<StorageItem> searchItems(String userPrefix, String query) throws Exception {
+    public List<StorageItem> searchItems(String basePath, String query) throws Exception {
         List<StorageItem> itemsThatMatch = new ArrayList<>();
         if (query == null || query.isBlank()) {
             return itemsThatMatch;
@@ -31,7 +31,8 @@ public class MinioSearchServiceImpl extends AbstractMinioService implements Sear
         Iterable<Result<Item>> allUserItems = minioClient.listObjects(
                 ListObjectsArgs.builder()
                         .bucket(usersBucketName)
-                        .prefix(userPrefix)
+                        .startAfter(basePath)
+                        .prefix(basePath)
                         .recursive(true)
                         .build()
         );
@@ -44,7 +45,7 @@ public class MinioSearchServiceImpl extends AbstractMinioService implements Sear
             String itemName = PathUtil.extractNameFromPath(fullItemPath);
 
             if (itemName.toLowerCase().contains(query.toLowerCase())) {
-                String relativePath = fullItemPath.substring(userPrefix.length());
+                String relativePath = fullItemPath.substring(basePath.length());
                 itemsThatMatch.add(new StorageItem(relativePath, isFolder, item.size()));
             }
         }

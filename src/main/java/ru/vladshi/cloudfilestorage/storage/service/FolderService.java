@@ -18,7 +18,7 @@ public interface FolderService {
 
     void rename(String path, String oldFolderName, String newFolderName) throws Exception;
 
-    void upload(String path, String folderName, MultipartFile[] files) throws Exception;
+    void upload(String path, String folderToUploadName, MultipartFile[] files) throws Exception;
 
     InputStreamResource download(String path, String folderName) throws Exception;
 

@@ -53,7 +53,8 @@
                 <tr th:each="item : ${items}" th:if="${item.isFolder()}">
                     <td>
                         <span class="folder-icon"><i class="fa-solid fa-folder-open"></i></span>
-                        <a style="font-weight: lighter; color: #8597c8" th:href="@{/(path=${item.getParentPath()})}" th:text="${item.getParentPath()}"></a><span style="font-weight: bold; color: #f1f1f1; margin-left: 2px" th:text="${item.getName()}"></span>
+                        <a style="font-weight: lighter; color: #8597c8" th:href="@{/(path=${item.getParentPath()})}" th:text="${item.getParentPath()} == '' ? '/' : ${item.getParentPath()}"></a>
+                        <span style="font-weight: bold; color: #f1f1f1; margin-left: 2px" th:text="${item.getName()}"></span>
                     </td>
                     <td class="size-column" th:text="'-'"></td>
                     <td class="actions-column">
@@ -82,7 +83,8 @@
                 <tr th:each="item : ${items}" th:if="${not item.isFolder}">
                     <td>
                         <span class="file-icon"><i class="fa-regular fa-file-lines"></i></span>
-                        <a style="font-weight: lighter; color: #8597c8" th:href="@{/(path=${item.getParentPath()})}" th:text="${item.getParentPath()}"></a><span style="font-weight: bold; color: #f1f1f1; margin-left: 2px" th:text="${item.getName()}"></span>
+                        <a style="font-weight: lighter; color: #8597c8" th:href="@{/(path=${item.getParentPath()})}" th:text="${item.getParentPath()} == '' ? '/' : ${item.getParentPath()}"></a>
+                        <span style="font-weight: bold; color: #f1f1f1; margin-left: 2px" th:text="${item.getName()}"></span>
                     </td>
                     <td class="size-column" th:text="${item.getFormattedSize()}"></td>
                     <td class="actions-column">
